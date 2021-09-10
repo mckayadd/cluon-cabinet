@@ -97,5 +97,9 @@ include_directories(SYSTEM ${CMAKE_BINARY_DIR})
 add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources})
 target_link_libraries(rec2cabinet ${LIBRARIES})
 
+add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources})
+target_link_libraries(cabinet-ls ${LIBRARIES})
+
 ################################################################################
 install(TARGETS rec2cabinet DESTINATION bin COMPONENT ${PROJECT_NAME})
+install(TARGETS cabinet-ls DESTINATION bin COMPONENT ${PROJECT_NAME})
