@@ -1,3 +1,11 @@
+b
+build
+*rec
+*cabinet
+*cabinet-lock
+
+*.swp
+
 # Prerequisites
 *.d
 
