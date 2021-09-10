@@ -15,8 +15,16 @@
 
 #include <iostream>
 #include <iomanip>
+#include <locale>
 #include <map>
 #include <string>
+
+typedef unsigned __int128 uint128_t;
+
+struct space_out : std::numpunct<char> {
+  char do_thousands_sep()   const { return ','; }  // separate with spaces
+  std::string do_grouping() const { return "\3"; } // groups of 3 digit
+};
 
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
@@ -30,6 +38,7 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "Example: " << argv[0] << " --rec=myFile.rec --cabinet=myStore.cabinet" << std::endl;
     retCode = 1;
   } else {
+    std::clog.imbue(std::locale(std::cout.getloc(), new space_out));
     const std::string REC{commandlineArguments["rec"]};
     const std::string CABINET{(commandlineArguments["cabinet"].size() != 0) ? commandlineArguments["cabinet"] : "./" + REC + ".cabinet"};
 
@@ -93,8 +102,6 @@ int32_t main(int32_t argc, char **argv) {
       MDB_val key;
       MDB_val value;
 
-      constexpr const int64_t TIMEOFFSET{1514764800000000LL};
-
       uint32_t entries{0};
       uint64_t totalBytesRead = 0;
       uint64_t totalBytesWritten = 0;
@@ -115,14 +122,6 @@ int32_t main(int32_t argc, char **argv) {
           const uint64_t MAX_BYTES_TO_WRITE{10*1024*1024};
           uint64_t bytesWritten = 0;
 
-          auto computeKey = [](const int32_t dataType, const uint32_t senderStamp, int64_t sampleTimeStamp){
-            const int64_t k0 = ((0xFFF & static_cast<int16_t>(dataType)) << 4) | (0xF & static_cast<int8_t>(senderStamp));
-            int64_t k = (sampleTimeStamp - TIMEOFFSET);
-            k <<= 16;
-            k |= k0;
-            return k;
-          };
-
           int32_t oldPercentage{-1};
           while (recFile.good()) {
             const uint64_t POS_BEFORE = static_cast<uint64_t>(recFile.tellg());
@@ -131,9 +130,6 @@ int32_t main(int32_t argc, char **argv) {
 
             if (!recFile.eof() && retVal.first) {
               entries++;
-              if ( (entries != 0) && ( (entries % 10000) == 0 ) ) {
-                std::clog << "[" << argv[0] << "]: Processed " << entries << " entries." << std::endl;
-              }
               totalBytesRead += (POS_AFTER - POS_BEFORE);
 
               // Commit write.
@@ -156,7 +152,8 @@ int32_t main(int32_t argc, char **argv) {
 
               // Create bytes to store in "all".
               const std::string sVal{cluon::serializeEnvelope(std::move(e))};
-
+              value.mv_size = sVal.size();
+              value.mv_data = const_cast<char*>(sVal.c_str());
 /*
               // Compress value using zstd.
               std::string compressedValue{};
@@ -169,21 +166,12 @@ int32_t main(int32_t argc, char **argv) {
 
                 compressedValue.resize(compressedSize);
                 compressedValue.shrink_to_fit();
-              }
-*/
-              value.mv_size = sVal.size();
-              value.mv_data = const_cast<char*>(sVal.c_str());
-/*
-              if (!COMPRESS) {
-                value.mv_size = sVal.size();
-                value.mv_data = const_cast<char*>(sVal.c_str());
-              }
-              else {
+
                 value.mv_size = compressedValue.size();
                 value.mv_data = const_cast<char*>(compressedValue.c_str());
               }
 */
-              int64_t _key{0};
+              __int128 _key{0};
               bytesWritten += value.mv_size + sizeof(_key);
               totalBytesWritten += value.mv_size + sizeof(_key);
 
@@ -208,7 +196,9 @@ int32_t main(int32_t argc, char **argv) {
 
               int64_t sampleTimeStampOffsetToAvoidCollision{0};
               do {
-                _key = computeKey(e.dataType(), e.senderStamp(), sampleTimeStamp + sampleTimeStampOffsetToAvoidCollision);
+                const int64_t timeStamp = sampleTimeStamp + sampleTimeStampOffsetToAvoidCollision;
+                const int64_t dataTypeSenderStamp = ((static_cast<int64_t>(e.dataType()))<<32) | static_cast<int64_t>(e.senderStamp());
+                _key = ((static_cast<__int128>(timeStamp))<<64) | static_cast<__int128>(dataTypeSenderStamp);
                 key.mv_size = sizeof(_key);
                 key.mv_data = &_key;
                
@@ -234,11 +224,11 @@ int32_t main(int32_t argc, char **argv) {
                 mapOfDatabases[_shortKey] = dbi;
               }
               if (mapOfDatabases.count(_shortKey) == 1) {
-                int64_t k = sampleTimeStamp - TIMEOFFSET + sampleTimeStampOffsetToAvoidCollision;
+                int64_t k = sampleTimeStamp + sampleTimeStampOffsetToAvoidCollision;
                 key.mv_size = sizeof(k);
                 key.mv_data = &k;
 
-                // value is fwd pointer to key in table "All"
+                // value is fwd pointer to key in table "all"
                 value.mv_size = sizeof(_key);
                 value.mv_data = &_key;
 
@@ -252,7 +242,7 @@ int32_t main(int32_t argc, char **argv) {
 
               const int32_t percentage = static_cast<int32_t>((static_cast<float>(recFile.tellg()) * 100.0f) / static_cast<float>(fileLength));
               if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
-                std::clog << "[" << argv[0] << "]: Processed " << percentage << "% from " << REC << "; total bytes written: " << totalBytesWritten << std::endl;
+                std::clog << "[" << argv[0] << "]: Processed " << percentage << "% (" << entries << " entries) from " << REC << "; total bytes added: " << totalBytesWritten << std::endl;
                 oldPercentage = percentage;
               }
             }
@@ -260,9 +250,8 @@ int32_t main(int32_t argc, char **argv) {
         }
         const cluon::data::TimeStamp AFTER{cluon::time::now()};
 
-        std::clog << "[" << argv[0] << "]: " << REC << " read " << entries << " entries (" << totalBytesRead << " bytes) "
-                  << ", written " << totalBytesWritten << " bytes "
-                  << "in " << cluon::time::deltaInMicroseconds(AFTER, BEFORE) / static_cast<int64_t>(1000 * 1000) << "s." << std::endl;
+        std::clog << "[" << argv[0] << "]: Processed 100% (" << entries << " entries) from " << REC << "; total bytes read: " << totalBytesRead << "; total bytes added: " << totalBytesWritten
+                  << " in " << cluon::time::deltaInMicroseconds(AFTER, BEFORE) / static_cast<int64_t>(1000 * 1000) << "s." << std::endl;
         {
           uint64_t numberOfEntries{0};
           MDB_stat stat;
