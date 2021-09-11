@@ -29,7 +29,7 @@ struct space_out : std::numpunct<char> {
 
 // fcuntion to compare two keys.
 // key format:
-// 8 bytes as int64_t for timeStamp in nanoseconds
+// b0-b7: int64_t for timeStamp in nanoseconds
 int compareKeys(const MDB_val *a, const MDB_val *b) {
   if (nullptr == a || nullptr == b) {
     return 0;
@@ -38,7 +38,6 @@ int compareKeys(const MDB_val *a, const MDB_val *b) {
     return 0;
   }
   const int64_t delta{*(static_cast<int64_t*>(a->mv_data)) - *(static_cast<int64_t*>(b->mv_data))};
-std::cerr << "cmp: a = " << *(static_cast<int64_t*>(a->mv_data)) << " - b = " << *(static_cast<int64_t*>(b->mv_data)) << " = " << delta << std::endl;
   return (delta < 0 ? -1 : (delta > 0 ? 1 : 0));
 };
 
@@ -188,7 +187,6 @@ int32_t main(int32_t argc, char **argv) {
                 value.mv_data = const_cast<char*>(compressedValue.c_str());
               }
 */
-              //int64_t _key{0};
               std::vector<char> _key;
               _key.reserve(MAXKEYSIZE);
               
@@ -264,35 +262,7 @@ int32_t main(int32_t argc, char **argv) {
                 mdb_env_close(env);
                 break;
               }
-/*
-              // Make sure to have the split database and that we have it open.
-              const std::string _shortKey{std::to_string(e.dataType()) + "/" + std::to_string(e.senderStamp())};
-              if (mapOfDatabases.count(_shortKey) == 0) {
-                MDB_dbi dbi;
-                if (!checkErrorCode(mdb_dbi_open(txn, _shortKey.c_str(), MDB_CREATE|MDB_INTEGERKEY , &dbi), __LINE__, "mdb_dbi_open")) {
-                  mdb_txn_abort(txn);
-                  mdb_env_close(env);
-                  break;
-                }
-                mapOfDatabases[_shortKey] = dbi;
-              }
-              if (mapOfDatabases.count(_shortKey) == 1) {
-                int64_t k = sampleTimeStamp + sampleTimeStampOffsetToAvoidCollision;
-                key.mv_size = sizeof(k);
-                key.mv_data = &k;
 
-                // value is fwd pointer to key in table "all"
-                value.mv_size = sizeof(_key);
-                value.mv_data = &_key;
-
-                if (MDB_SUCCESS != (retCode = mdb_put(txn, mapOfDatabases[_shortKey], &key, &value, MDB_NOOVERWRITE))) {
-                  std::cerr << argv[0] << ": " << "mdb_put: (" << retCode << ") " << mdb_strerror(retCode) << ", stored " << entries << std::endl;
-                  mdb_txn_abort(txn);
-                  mdb_env_close(env);
-                  break;
-                }
-              }
-*/
               const int32_t percentage = static_cast<int32_t>((static_cast<float>(recFile.tellg()) * 100.0f) / static_cast<float>(fileLength));
               if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
                 std::clog << "[" << argv[0] << "]: Processed " << percentage << "% (" << entries << " entries) from " << REC << "; total bytes added: " << totalBytesWritten << std::endl;
