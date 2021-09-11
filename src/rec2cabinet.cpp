@@ -61,6 +61,7 @@ int32_t main(int32_t argc, char **argv) {
     MDB_env *env{nullptr};
     const int numberOfDatabases{100};
     const int64_t SIZE_DB = 64UL *1024UL * 1024UL * 1024UL * 1024UL;
+    const uint64_t MAXKEYSIZE = 511;
 
     // lambda to check the interaction with the database.
     auto checkErrorCode = [_argv=argv](int32_t rc, int32_t line, std::string caller) {
@@ -189,7 +190,7 @@ int32_t main(int32_t argc, char **argv) {
 */
               //int64_t _key{0};
               std::vector<char> _key;
-              _key.reserve(511 /*max key size*/);
+              _key.reserve(MAXKEYSIZE);
               
               bytesWritten += value.mv_size + sizeof(_key);
               totalBytesWritten += value.mv_size + sizeof(_key);
@@ -217,14 +218,33 @@ int32_t main(int32_t argc, char **argv) {
               // b0-b7: int64_t for timeStamp in nanoseconds
               // b8-b11: int32_t for dataType
               // b12-b15: uint32_t for senderStamp
+              // b16: uint8_t: version
               uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/};
               {
                 int32_t dataType{e.dataType()};
                 uint32_t senderStamp{e.senderStamp()};
+                uint8_t version{0};
                 std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&dataType), sizeof(int32_t));
                 offset += sizeof(int32_t);
                 std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&senderStamp), sizeof(uint32_t));
                 offset += sizeof(uint32_t);
+                std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&version), sizeof(uint8_t));
+                offset += sizeof(uint8_t);
+                {
+                  // version 0:
+                  // if (511 - (value.mv_size + offset) > 0) --> store value directly in key 
+                  if ( MAXKEYSIZE > (offset + value.mv_size) )  {
+                    // b17-b18: uint16_t: length of the value
+                    uint16_t length = static_cast<uint16_t>(value.mv_size);
+                    std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&length), sizeof(uint16_t));
+                    offset += sizeof(uint16_t);
+
+                    std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(value.mv_data), value.mv_size);
+                    offset += value.mv_size;
+                    value.mv_size = 0;
+                    value.mv_data = 0;
+                  }
+                }
               }
 
               int64_t sampleTimeStampOffsetToAvoidCollision{0};

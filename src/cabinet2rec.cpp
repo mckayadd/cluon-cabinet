@@ -90,10 +90,34 @@ int32_t main(int32_t argc, char **argv) {
           int32_t oldPercentage{-1};
           MDB_val key;
           MDB_val val;
-          while ((retCode = mdb_cursor_get(cursor, &key, &val, MDB_NEXT_NODUP)) == 0) {
-            recFile.write(static_cast<char*>(val.mv_data), val.mv_size);
 
-            entries++;
+          while ((retCode = mdb_cursor_get(cursor, &key, &val, MDB_NEXT_NODUP)) == 0) {
+            char *ptr = static_cast<char*>(key.mv_data);
+            // b0-b7: int64_t for timeStamp in nanoseconds
+            uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/};
+            // b8-b11: int32_t for dataType
+            offset += sizeof(int32_t);
+            // b12-b15: uint32_t for senderStamp
+            offset += sizeof(uint32_t);
+
+            // b16: uint8_t: version
+            uint8_t version{0};
+            offset += sizeof(uint8_t);
+            if (0 == version) {
+              // b17-b18: uint16_t: length of the in-key value
+              const uint16_t length = *(reinterpret_cast<uint16_t*>(ptr + offset));
+              offset += sizeof(uint16_t);
+              if (0 < length) {
+                // value if contained in the key
+                recFile.write(ptr + offset, length);
+              }
+              else {
+                // value is not stored in the key
+                recFile.write(static_cast<char*>(val.mv_data), val.mv_size);
+              }
+              entries++;
+            }
+   
             const int32_t percentage = static_cast<int32_t>(static_cast<float>(entries * 100.0f) / static_cast<float>(numberOfEntries));
             if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
               std::clog << "[" << argv[0] << "]: Processed " << percentage << "% (" << entries << " entries) from " << CABINET << "." << std::endl;
