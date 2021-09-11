@@ -34,7 +34,7 @@ int32_t main(int32_t argc, char **argv) {
 
     MDB_env *env{nullptr};
     const int numberOfDatabases{100};
-    const int64_t SIZE_120TB = 120UL * 1024UL * 1024UL * 1024UL * 1024UL;
+    const int64_t SIZE_DB = 64UL * 1024UL * 1024UL * 1024UL * 1024UL;
 
     // lambda to check the interaction with the database.
     auto checkErrorCode = [_argv=argv](int32_t rc, int32_t line, std::string caller) {
@@ -51,7 +51,7 @@ int32_t main(int32_t argc, char **argv) {
       mdb_env_close(env);
       return 1;
     }
-    if (!checkErrorCode(mdb_env_set_mapsize(env, SIZE_120TB), __LINE__, "mdb_env_set_mapsize")) {
+    if (!checkErrorCode(mdb_env_set_mapsize(env, SIZE_DB), __LINE__, "mdb_env_set_mapsize")) {
       mdb_env_close(env);
       return 1;
     }
@@ -87,7 +87,7 @@ int32_t main(int32_t argc, char **argv) {
             const int64_t timeStamp = static_cast<int64_t>((tmp>>64));
             const int64_t dataType = static_cast<int64_t>((tmp&0xFFFFFFFF00000000)) >> 32;
             const int64_t senderStamp = static_cast<int64_t>((tmp&0xFFFFFFFF));
-            std::clog << timeStamp << ": " << dataType << "/" << senderStamp << std::endl;
+            std::cout << timeStamp << ": " << dataType << "/" << senderStamp << std::endl;
           }
           mdb_cursor_close(cursor);
         }

@@ -44,7 +44,7 @@ int32_t main(int32_t argc, char **argv) {
 
     MDB_env *env{nullptr};
     const int numberOfDatabases{100};
-    const int64_t SIZE_120TB = 120UL * 1024UL * 1024UL * 1024UL * 1024UL;
+    const int64_t SIZE_DB = 64UL *1024UL * 1024UL * 1024UL * 1024UL;
 
     // lambda to check the interaction with the database.
     auto checkErrorCode = [_argv=argv](int32_t rc, int32_t line, std::string caller) {
@@ -61,7 +61,7 @@ int32_t main(int32_t argc, char **argv) {
       mdb_env_close(env);
       return 1;
     }
-    if (!checkErrorCode(mdb_env_set_mapsize(env, SIZE_120TB), __LINE__, "mdb_env_set_mapsize")) {
+    if (!checkErrorCode(mdb_env_set_mapsize(env, SIZE_DB), __LINE__, "mdb_env_set_mapsize")) {
       mdb_env_close(env);
       return 1;
     }
@@ -196,7 +196,7 @@ int32_t main(int32_t argc, char **argv) {
 
               int64_t sampleTimeStampOffsetToAvoidCollision{0};
               do {
-                const int64_t timeStamp = sampleTimeStamp + sampleTimeStampOffsetToAvoidCollision;
+                const int64_t timeStamp = sampleTimeStamp*1000 + sampleTimeStampOffsetToAvoidCollision;
                 const int64_t dataTypeSenderStamp = ((static_cast<int64_t>(e.dataType()))<<32) | static_cast<int64_t>(e.senderStamp());
                 _key = ((static_cast<__int128>(timeStamp))<<64) | static_cast<__int128>(dataTypeSenderStamp);
                 key.mv_size = sizeof(_key);
@@ -204,14 +204,14 @@ int32_t main(int32_t argc, char **argv) {
                
                 // Try next slot if already taken.
                 sampleTimeStampOffsetToAvoidCollision++;
-              } while ( MDB_KEYEXIST == (retCode = mdb_put(txn, mapOfDatabases["all"], &key, &value, MDB_NOOVERWRITE|MDB_APPEND)) );
+              } while ( MDB_KEYEXIST == (retCode = mdb_put(txn, mapOfDatabases["all"], &key, &value, MDB_NOOVERWRITE)) );
               if (0 != retCode) {
                 std::cerr << argv[0] << ": " << "mdb_put: (" << retCode << ") " << mdb_strerror(retCode) << ", stored " << entries << std::endl;
                 mdb_txn_abort(txn);
                 mdb_env_close(env);
                 break;
               }
-
+/*
               // Make sure to have the split database and that we have it open.
               const std::string _shortKey{std::to_string(e.dataType()) + "/" + std::to_string(e.senderStamp())};
               if (mapOfDatabases.count(_shortKey) == 0) {
@@ -232,14 +232,14 @@ int32_t main(int32_t argc, char **argv) {
                 value.mv_size = sizeof(_key);
                 value.mv_data = &_key;
 
-                if (MDB_SUCCESS != (retCode = mdb_put(txn, mapOfDatabases[_shortKey], &key, &value, MDB_NOOVERWRITE|MDB_APPEND))) {
+                if (MDB_SUCCESS != (retCode = mdb_put(txn, mapOfDatabases[_shortKey], &key, &value, MDB_NOOVERWRITE))) {
                   std::cerr << argv[0] << ": " << "mdb_put: (" << retCode << ") " << mdb_strerror(retCode) << ", stored " << entries << std::endl;
                   mdb_txn_abort(txn);
                   mdb_env_close(env);
                   break;
                 }
               }
-
+*/
               const int32_t percentage = static_cast<int32_t>((static_cast<float>(recFile.tellg()) * 100.0f) / static_cast<float>(fileLength));
               if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
                 std::clog << "[" << argv[0] << "]: Processed " << percentage << "% (" << entries << " entries) from " << REC << "; total bytes added: " << totalBytesWritten << std::endl;
