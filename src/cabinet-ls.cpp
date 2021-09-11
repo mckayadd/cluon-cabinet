@@ -83,11 +83,16 @@ int32_t main(int32_t argc, char **argv) {
         if (!(retCode = mdb_cursor_open(txn, dbi, &cursor))) {
           MDB_val key;
           while ((retCode = mdb_cursor_get(cursor, &key, nullptr, MDB_NEXT_NODUP)) == 0) {
+            int64_t tmp = *(static_cast<int64_t*>(key.mv_data));
+            const int64_t timeStamp = tmp;
+            std::cout << timeStamp << std::endl;
+/*
             __int128 tmp = *(static_cast<__int128*>(key.mv_data));
             const int64_t timeStamp = static_cast<int64_t>((tmp>>64));
             const int64_t dataType = static_cast<int64_t>((tmp&0xFFFFFFFF00000000)) >> 32;
             const int64_t senderStamp = static_cast<int64_t>((tmp&0xFFFFFFFF));
             std::cout << timeStamp << ": " << dataType << "/" << senderStamp << std::endl;
+*/
           }
           mdb_cursor_close(cursor);
         }

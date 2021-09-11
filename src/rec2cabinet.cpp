@@ -26,6 +26,21 @@ struct space_out : std::numpunct<char> {
   std::string do_grouping() const { return "\3"; } // groups of 3 digit
 };
 
+// lambda to compare two keys.
+// key format:
+// 8 bytes as int64_t for timeStamp in nanoseconds
+int compareKeys(const MDB_val *a, const MDB_val *b) {
+  if (nullptr == a || nullptr == b) {
+    return 0;
+  }
+  if (a->mv_size < sizeof(int64_t) || b->mv_size < sizeof(int64_t)) {
+    return 0;
+  }
+  const int64_t delta = *(static_cast<int64_t*>(a->mv_data)) - *(static_cast<int64_t*>(b->mv_data));
+std::cerr << "cmp: a = " << *(static_cast<int64_t*>(a->mv_data)) << " - b = " << *(static_cast<int64_t*>(b->mv_data)) << " = " << delta << std::endl;
+  return (delta < 0 ? -1 : (delta > 0 ? 1 : 0));
+};
+
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
@@ -77,7 +92,7 @@ int32_t main(int32_t argc, char **argv) {
         mdb_env_close(env);
         return 1;
       }
-      retCode = mdb_dbi_open(txn, "all", MDB_INTEGERKEY , &dbi);
+      retCode = mdb_dbi_open(txn, "all", 0/*no flags*/, &dbi);
       if (MDB_NOTFOUND  == retCode) {
         std::clog << "[" << argv[0] << "]: No table 'all' found in " << CABINET << ", will be created on opening." << std::endl;
       }
@@ -171,7 +186,7 @@ int32_t main(int32_t argc, char **argv) {
                 value.mv_data = const_cast<char*>(compressedValue.c_str());
               }
 */
-              __int128 _key{0};
+              int64_t _key{0};
               bytesWritten += value.mv_size + sizeof(_key);
               totalBytesWritten += value.mv_size + sizeof(_key);
 
@@ -186,19 +201,21 @@ int32_t main(int32_t argc, char **argv) {
               // Make sure to have a database "all" and that we have it open.
               if (mapOfDatabases.count("all") == 0) {
                 MDB_dbi dbi;
-                if (!checkErrorCode(mdb_dbi_open(txn, "all", MDB_CREATE|MDB_INTEGERKEY, &dbi), __LINE__, "mdb_dbi_open")) {
+                if (!checkErrorCode(mdb_dbi_open(txn, "all", MDB_CREATE, &dbi), __LINE__, "mdb_dbi_open")) {
                   mdb_txn_abort(txn);
                   mdb_env_close(env);
                   break;
                 }
                 mapOfDatabases["all"] = dbi;
+                mdb_set_compare(txn, mapOfDatabases["all"], &compareKeys);
               }
 
               int64_t sampleTimeStampOffsetToAvoidCollision{0};
               do {
                 const int64_t timeStamp = sampleTimeStamp*1000 + sampleTimeStampOffsetToAvoidCollision;
-                const int64_t dataTypeSenderStamp = ((static_cast<int64_t>(e.dataType()))<<32) | static_cast<int64_t>(e.senderStamp());
-                _key = ((static_cast<__int128>(timeStamp))<<64) | static_cast<__int128>(dataTypeSenderStamp);
+                //const int64_t dataTypeSenderStamp = ((static_cast<int64_t>(e.dataType()))<<32) | static_cast<int64_t>(e.senderStamp());
+                //_key = ((static_cast<__int128>(timeStamp))<<64) | static_cast<__int128>(dataTypeSenderStamp);
+                _key = timeStamp;
                 key.mv_size = sizeof(_key);
                 key.mv_data = &_key;
                
