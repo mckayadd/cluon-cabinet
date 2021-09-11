@@ -18,6 +18,7 @@
 #include <locale>
 #include <map>
 #include <string>
+#include <vector>
 
 typedef unsigned __int128 uint128_t;
 
@@ -26,7 +27,7 @@ struct space_out : std::numpunct<char> {
   std::string do_grouping() const { return "\3"; } // groups of 3 digit
 };
 
-// lambda to compare two keys.
+// fcuntion to compare two keys.
 // key format:
 // 8 bytes as int64_t for timeStamp in nanoseconds
 int compareKeys(const MDB_val *a, const MDB_val *b) {
@@ -36,7 +37,7 @@ int compareKeys(const MDB_val *a, const MDB_val *b) {
   if (a->mv_size < sizeof(int64_t) || b->mv_size < sizeof(int64_t)) {
     return 0;
   }
-  const int64_t delta = *(static_cast<int64_t*>(a->mv_data)) - *(static_cast<int64_t*>(b->mv_data));
+  const int64_t delta{*(static_cast<int64_t*>(a->mv_data)) - *(static_cast<int64_t*>(b->mv_data))};
 std::cerr << "cmp: a = " << *(static_cast<int64_t*>(a->mv_data)) << " - b = " << *(static_cast<int64_t*>(b->mv_data)) << " = " << delta << std::endl;
   return (delta < 0 ? -1 : (delta > 0 ? 1 : 0));
 };
@@ -186,7 +187,10 @@ int32_t main(int32_t argc, char **argv) {
                 value.mv_data = const_cast<char*>(compressedValue.c_str());
               }
 */
-              int64_t _key{0};
+              //int64_t _key{0};
+              std::vector<char> _key;
+              _key.reserve(511 /*max key size*/);
+              
               bytesWritten += value.mv_size + sizeof(_key);
               totalBytesWritten += value.mv_size + sizeof(_key);
 
@@ -210,14 +214,26 @@ int32_t main(int32_t argc, char **argv) {
                 mdb_set_compare(txn, mapOfDatabases["all"], &compareKeys);
               }
 
+              // b0-b7: int64_t for timeStamp in nanoseconds
+              // b8-b11: int32_t for dataType
+              // b12-b15: uint32_t for senderStamp
+              uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/};
+              {
+                int32_t dataType{e.dataType()};
+                uint32_t senderStamp{e.senderStamp()};
+                std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&dataType), sizeof(int32_t));
+                offset += sizeof(int32_t);
+                std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&senderStamp), sizeof(uint32_t));
+                offset += sizeof(uint32_t);
+              }
+
               int64_t sampleTimeStampOffsetToAvoidCollision{0};
               do {
-                const int64_t timeStamp = sampleTimeStamp*1000 + sampleTimeStampOffsetToAvoidCollision;
-                //const int64_t dataTypeSenderStamp = ((static_cast<int64_t>(e.dataType()))<<32) | static_cast<int64_t>(e.senderStamp());
-                //_key = ((static_cast<__int128>(timeStamp))<<64) | static_cast<__int128>(dataTypeSenderStamp);
-                _key = timeStamp;
-                key.mv_size = sizeof(_key);
-                key.mv_data = &_key;
+                const int64_t timeStamp = (sampleTimeStamp * 1000UL) + sampleTimeStampOffsetToAvoidCollision;
+                std::memcpy(_key.data(), reinterpret_cast<const char*>(&timeStamp), sizeof(int64_t));
+                
+                key.mv_size = offset;
+                key.mv_data = _key.data();
                
                 // Try next slot if already taken.
                 sampleTimeStampOffsetToAvoidCollision++;
