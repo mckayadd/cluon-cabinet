@@ -61,6 +61,22 @@ IF(UNIX)
 	SET_SOURCE_FILES_PROPERTIES(${lmdb_SOURCE_DIR}/midl.c PROPERTIES COMPILE_FLAGS "${LMDB_COMPILE_FLAGS}")
 ENDIF()
 
+SET(xxhash_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/xxhash")
+INCLUDE_DIRECTORIES (${xxhash_SOURCE_DIR})
+SET (xxhash-sources
+  ${xxhash_SOURCE_DIR}/xxhash.c
+)
+# Set compile flags for xxhash.
+IF(UNIX)
+	set(XXHASH_COMPILE_FLAGS "-Wall -Wextra -Wconversion -Wcast-qual -Wcast-align -Wshadow \
+														-Wstrict-aliasing=1 -Wswitch-enum -Wdeclaration-after-statement \
+														-Wstrict-prototypes -Wundef -Wpointer-arith -Wformat-security \
+														-Wvla -Wformat=2 -Winit-self -Wfloat-equal -Wwrite-strings \
+														-Wredundant-decls -Wstrict-overflow=2")
+	SET_SOURCE_FILES_PROPERTIES(${xxhash_SOURCE_DIR}/xxhash.c PROPERTIES COMPILE_FLAGS "${XXHASH_COMPILE_FLAGS}")
+ENDIF()
+
+
 # Threads are necessary for linking the resulting binaries as UDPReceiver is running in parallel.
 # assume built-in pthreads on MacOS
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -94,13 +110,13 @@ include_directories(SYSTEM ${CMAKE_BINARY_DIR})
 
 ################################################################################
 # Create executables.
-add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources})
+add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(rec2cabinet ${LIBRARIES})
 
-add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources})
+add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(cabinet2rec ${LIBRARIES})
 
-add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources})
+add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(cabinet-ls ${LIBRARIES})
 
 ################################################################################
