@@ -166,6 +166,8 @@ int32_t main(int32_t argc, char **argv) {
               cluon::data::Envelope e{std::move(retVal.second)};
               auto sampleTimeStamp{cluon::time::toMicroseconds(e.sampleTimeStamp())};
 
+              // TODO: create xxhash over Envelope to avoid duplicated entries
+
               // Create bytes to store in "all".
               const std::string sVal{cluon::serializeEnvelope(std::move(e))};
               value.mv_size = sVal.size();
