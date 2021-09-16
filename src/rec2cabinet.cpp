@@ -7,6 +7,7 @@
  */
 
 #include "cluon-complete.hpp"
+#include "db.hpp"
 #include "lmdb.h"
 #include "xxhash.h"
 
@@ -110,6 +111,22 @@ int32_t main(int32_t argc, char **argv) {
       if (dbi) {
         mdb_dbi_close(env, dbi);
       }
+    }
+
+    {
+      cabinet::Key k;
+      k.timeStamp(12345)
+       .dataType(4321)
+       .senderStamp(223344)
+       .hash(987654321)
+       .version(3)
+       .length(531);
+
+       std::stringstream buffer;
+       k.accept([](uint32_t, const std::string &, const std::string &) {},
+                   [&buffer](uint32_t, std::string &&, std::string &&n, auto v) { buffer << n << " = " << v << '\n'; },
+                   []() {});
+       std::cout << buffer.str() << std::endl;
     }
 
     // Iterate through .rec file and fill database.

@@ -1,0 +1,8 @@
+message cabinet.Key  [id = 1] {
+  int64  timeStamp   [id = 1];
+  int32  dataType    [id = 2];
+  uint32 senderStamp [id = 3];
+  uint64 hash        [id = 4];
+  uint8  version     [id = 5];
+  uint16 length      [id = 6];
+}

@@ -13,6 +13,7 @@ project(cluon-cabinet)
 ################################################################################
 # Defining the relevant version of libcluon.
 set(CLUON_COMPLETE cluon-complete-v0.0.140.hpp)
+set(DB_MESSAGE_SET db.odvd)
 
 ################################################################################
 # Set the search path for .cmake files.
@@ -30,6 +31,7 @@ ENDIF()
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
   set(CMAKE_CXX_FLAGS "-D_DARWIN_C_SOURCE=1 ")
+  set(CMAKE_OSX_SYSROOT /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk)
 endif()
 
 # Add further warning levels.
@@ -109,14 +111,39 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/cluon-complete.hpp
 include_directories(SYSTEM ${CMAKE_BINARY_DIR})
 
 ################################################################################
+# Extract cluon-msc from cluon-complete.hpp.
+IF(APPLE)
+	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/cluon-msc
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+			COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE} ${CMAKE_BINARY_DIR}/cluon-complete.hpp
+			COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/cluon-complete.cpp
+			COMMAND ${CMAKE_CXX_COMPILER} -o ${CMAKE_BINARY_DIR}/cluon-msc ${CMAKE_BINARY_DIR}/cluon-complete.cpp -isysroot ${CMAKE_OSX_SYSROOT} -std=c++14 -pthread -D_DARWIN_C_SOURCE=1 -D HAVE_CLUON_MSC
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE})
+ELSE()
+	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/cluon-msc
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+			COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE} ${CMAKE_BINARY_DIR}/cluon-complete.hpp
+			COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/cluon-complete.cpp
+			COMMAND ${CMAKE_CXX_COMPILER} -o ${CMAKE_BINARY_DIR}/cluon-msc ${CMAKE_BINARY_DIR}/cluon-complete.cpp -std=c++14 -pthread -D HAVE_CLUON_MSC
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE})
+ENDIF()
+
+################################################################################
+# Generate db.hpp.
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/db.hpp
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMAND ${CMAKE_BINARY_DIR}/cluon-msc --cpp --out=${CMAKE_BINARY_DIR}/db.hpp ${CMAKE_CURRENT_SOURCE_DIR}/src/${DB_MESSAGE_SET}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${DB_MESSAGE_SET} ${CMAKE_BINARY_DIR}/cluon-msc)
+
+################################################################################
 # Create executables.
-add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(rec2cabinet ${LIBRARIES})
 
-add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(cabinet2rec ${LIBRARIES})
 
-add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(cabinet-ls ${LIBRARIES})
 
 ################################################################################
