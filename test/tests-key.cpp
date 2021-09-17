@@ -41,3 +41,28 @@ TEST_CASE("Test writing key") {
 //  }
 //  std::cerr << std::dec << std::endl;
 }
+
+TEST_CASE("Test reading key") {
+  std::vector<char> tmp;
+  tmp.reserve(511);
+
+  const unsigned char input[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x39, 0x00, 0x00, 0x10, 0xe1, 0x00, 0x03, 0x68, 0x70, 0x00, 0x00, 0x00, 0x00, 0x3a, 0xde, 0x68, 0xb1, 0x00};
+  size_t length{25};
+  std::memcpy(tmp.data(), input, 25);
+
+  cabinet::Key k;
+  REQUIRE(0 == k.timeStamp());
+  REQUIRE(0 == k.dataType());
+  REQUIRE(0 == k.senderStamp());
+  REQUIRE(0 == k.hash());
+  REQUIRE(0 == k.version());
+  REQUIRE(0 == k.length());
+
+  k = getKey(tmp.data(), tmp.capacity());
+  REQUIRE(12345 == k.timeStamp());
+  REQUIRE(4321 == k.dataType());
+  REQUIRE(223344 == k.senderStamp());
+  REQUIRE(987654321 == k.hash());
+  REQUIRE(0 == k.version());
+  REQUIRE(0 == k.length());
+}

@@ -31,20 +31,6 @@ struct space_out : std::numpunct<char> {
 };
 
 
-// fcuntion to compare two keys.
-// key format:
-// b0-b7: int64_t for timeStamp in nanoseconds
-int compareKeys(const MDB_val *a, const MDB_val *b) {
-  if (nullptr == a || nullptr == b) {
-    return 0;
-  }
-  if (a->mv_size < sizeof(int64_t) || b->mv_size < sizeof(int64_t)) {
-    return 0;
-  }
-  const int64_t delta{*(static_cast<int64_t*>(a->mv_data)) - *(static_cast<int64_t*>(b->mv_data))};
-  return (delta < 0 ? -1 : (delta > 0 ? 1 : 0));
-};
-
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
