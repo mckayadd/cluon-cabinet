@@ -1,0 +1,43 @@
+/*
+ * Copyright (C) 2021  Christian Berger
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+#include "catch.hpp"
+
+#include "cluon-complete.hpp"
+#include "key.hpp"
+
+#include <cstring>
+#include <iostream>
+#include <iomanip>
+#include <vector>
+
+TEST_CASE("Test writing key") {
+  std::vector<char> tmp;
+  tmp.reserve(511);
+
+  cabinet::Key k;
+  k.timeStamp(12345)
+	 .dataType(4321)
+	 .senderStamp(223344)
+	 .hash(987654321)
+	 .version(0)
+	 .length(531);
+
+  const size_t len = setKey(k, tmp.data(), tmp.capacity());
+  REQUIRE(25 == len);
+
+  const unsigned char output[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x39, 0x00, 0x00, 0x10, 0xe1, 0x00, 0x03, 0x68, 0x70, 0x00, 0x00, 0x00, 0x00, 0x3a, 0xde, 0x68, 0xb1, 0x00};
+
+  REQUIRE(0 == strncmp(tmp.data(), reinterpret_cast<const char*>(output), len));
+
+//  std::cerr << std::hex << std::setw(2) << std::setfill('0');
+//  for(size_t i{0}; i < s; i++) {
+//    std::cerr << "0x" << std::hex << std::setw(2) << std::setfill('0') << +static_cast<uint8_t>(tmp.data()[i]) << ", ";
+//  }
+//  std::cerr << std::dec << std::endl;
+}

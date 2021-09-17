@@ -7,6 +7,7 @@
  */
 
 #include "cluon-complete.hpp"
+#include "key.hpp"
 #include "db.hpp"
 #include "lmdb.h"
 #include "xxhash.h"
@@ -28,6 +29,7 @@ struct space_out : std::numpunct<char> {
   char do_thousands_sep()   const { return ','; }  // separate with spaces
   std::string do_grouping() const { return "\3"; } // groups of 3 digit
 };
+
 
 // fcuntion to compare two keys.
 // key format:

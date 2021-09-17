@@ -137,6 +137,7 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/db.hpp
 
 ################################################################################
 # Create executables.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(rec2cabinet ${LIBRARIES})
 
@@ -145,6 +146,12 @@ target_link_libraries(cabinet2rec ${LIBRARIES})
 
 add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(cabinet-ls ${LIBRARIES})
+
+################################################################################
+enable_testing()
+add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-key.cpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+target_link_libraries(key-runner ${LIBRARIES})
+add_test(NAME key-runner COMMAND key-runner)
 
 ################################################################################
 install(TARGETS rec2cabinet DESTINATION bin COMPONENT ${PROJECT_NAME})
