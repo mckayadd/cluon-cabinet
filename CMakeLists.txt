@@ -36,19 +36,19 @@ endif()
 
 # Add further warning levels.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-	-D_XOPEN_SOURCE=700 \
-	-D_FORTIFY_SOURCE=2 \
-	-O2 \
-	-fstack-protector \
-	-fomit-frame-pointer \
-	-pipe \
-	-Weffc++ \
-	-Wall -Wextra -Wshadow -Wdeprecated \
-	-Wdiv-by-zero -Wfloat-equal -Wfloat-conversion -Wsign-compare -Wpointer-arith \
-	-Wuninitialized -Wunreachable-code \
-	-Wunused -Wunused-function -Wunused-label -Wunused-parameter \
-	-Wunused-value -Wunused-variable -Wunused-result \
-	-Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn")
+  -D_XOPEN_SOURCE=700 \
+  -D_FORTIFY_SOURCE=2 \
+  -O2 \
+  -fstack-protector \
+  -fomit-frame-pointer \
+  -pipe \
+  -Weffc++ \
+  -Wall -Wextra -Wshadow -Wdeprecated \
+  -Wdiv-by-zero -Wfloat-equal -Wfloat-conversion -Wsign-compare -Wpointer-arith \
+  -Wuninitialized -Wunreachable-code \
+  -Wunused -Wunused-function -Wunused-label -Wunused-parameter \
+  -Wunused-value -Wunused-variable -Wunused-result \
+  -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn")
 
 SET(lmdb_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lmdb/libraries/liblmdb")
 INCLUDE_DIRECTORIES (${lmdb_SOURCE_DIR})
@@ -58,9 +58,9 @@ SET (lmdb-sources
 )
 # Set compile flags for lmdb.
 IF(UNIX)
-	set(LMDB_COMPILE_FLAGS "-W -Wall -Wno-unused-parameter -Wbad-function-cast -Wuninitialized -O2")
-	SET_SOURCE_FILES_PROPERTIES(${lmdb_SOURCE_DIR}/mdb.c PROPERTIES COMPILE_FLAGS "${LMDB_COMPILE_FLAGS}")
-	SET_SOURCE_FILES_PROPERTIES(${lmdb_SOURCE_DIR}/midl.c PROPERTIES COMPILE_FLAGS "${LMDB_COMPILE_FLAGS}")
+  set(LMDB_COMPILE_FLAGS "-W -Wall -Wno-unused-parameter -Wbad-function-cast -Wuninitialized -O2")
+  SET_SOURCE_FILES_PROPERTIES(${lmdb_SOURCE_DIR}/mdb.c PROPERTIES COMPILE_FLAGS "${LMDB_COMPILE_FLAGS}")
+  SET_SOURCE_FILES_PROPERTIES(${lmdb_SOURCE_DIR}/midl.c PROPERTIES COMPILE_FLAGS "${LMDB_COMPILE_FLAGS}")
 ENDIF()
 
 SET(xxhash_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/xxhash")
@@ -70,12 +70,12 @@ SET (xxhash-sources
 )
 # Set compile flags for xxhash.
 IF(UNIX)
-	set(XXHASH_COMPILE_FLAGS "-Wall -Wextra -Wconversion -Wcast-qual -Wcast-align -Wshadow \
-														-Wstrict-aliasing=1 -Wswitch-enum -Wdeclaration-after-statement \
-														-Wstrict-prototypes -Wundef -Wpointer-arith -Wformat-security \
-														-Wvla -Wformat=2 -Winit-self -Wfloat-equal -Wwrite-strings \
-														-Wredundant-decls -Wstrict-overflow=2")
-	SET_SOURCE_FILES_PROPERTIES(${xxhash_SOURCE_DIR}/xxhash.c PROPERTIES COMPILE_FLAGS "${XXHASH_COMPILE_FLAGS}")
+  set(XXHASH_COMPILE_FLAGS "-Wall -Wextra -Wconversion -Wcast-qual -Wcast-align -Wshadow \
+                            -Wstrict-aliasing=1 -Wswitch-enum -Wdeclaration-after-statement \
+                            -Wstrict-prototypes -Wundef -Wpointer-arith -Wformat-security \
+                            -Wvla -Wformat=2 -Winit-self -Wfloat-equal -Wwrite-strings \
+                            -Wredundant-decls -Wstrict-overflow=2")
+  SET_SOURCE_FILES_PROPERTIES(${xxhash_SOURCE_DIR}/xxhash.c PROPERTIES COMPILE_FLAGS "${XXHASH_COMPILE_FLAGS}")
 ENDIF()
 
 
@@ -88,8 +88,8 @@ IF(APPLE)
     set(CMAKE_USE_WIN32_THREADS_INIT 0)
     set(CMAKE_USE_PTHREADS_INIT 1)
 ELSE()
-		find_package(Threads REQUIRED)
-		set(LIBRARIES ${LIBRARIES} Threads::Threads)
+    find_package(Threads REQUIRED)
+    set(LIBRARIES ${LIBRARIES} Threads::Threads)
 ENDIF()
 
 if(UNIX)
@@ -103,9 +103,9 @@ endif()
 ################################################################################
 # Create symbolic link to cluon-complete.hpp.
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/cluon-complete.hpp
-	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-	COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE} ${CMAKE_BINARY_DIR}/cluon-complete.hpp
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE})
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE} ${CMAKE_BINARY_DIR}/cluon-complete.hpp
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE})
 
 # Add current build directory as include directory as it contains generated files.
 include_directories(SYSTEM ${CMAKE_BINARY_DIR})
@@ -113,19 +113,19 @@ include_directories(SYSTEM ${CMAKE_BINARY_DIR})
 ################################################################################
 # Extract cluon-msc from cluon-complete.hpp.
 IF(APPLE)
-	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/cluon-msc
-			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-			COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE} ${CMAKE_BINARY_DIR}/cluon-complete.hpp
-			COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/cluon-complete.cpp
-			COMMAND ${CMAKE_CXX_COMPILER} -o ${CMAKE_BINARY_DIR}/cluon-msc ${CMAKE_BINARY_DIR}/cluon-complete.cpp -isysroot ${CMAKE_OSX_SYSROOT} -std=c++14 -pthread -D_DARWIN_C_SOURCE=1 -D HAVE_CLUON_MSC
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE})
+  add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/cluon-msc
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE} ${CMAKE_BINARY_DIR}/cluon-complete.hpp
+      COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/cluon-complete.cpp
+      COMMAND ${CMAKE_CXX_COMPILER} -o ${CMAKE_BINARY_DIR}/cluon-msc ${CMAKE_BINARY_DIR}/cluon-complete.cpp -isysroot ${CMAKE_OSX_SYSROOT} -std=c++14 -pthread -D_DARWIN_C_SOURCE=1 -D HAVE_CLUON_MSC
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE})
 ELSE()
-	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/cluon-msc
-			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-			COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE} ${CMAKE_BINARY_DIR}/cluon-complete.hpp
-			COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/cluon-complete.cpp
-			COMMAND ${CMAKE_CXX_COMPILER} -o ${CMAKE_BINARY_DIR}/cluon-msc ${CMAKE_BINARY_DIR}/cluon-complete.cpp -std=c++14 -pthread -D HAVE_CLUON_MSC
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE})
+  add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/cluon-msc
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE} ${CMAKE_BINARY_DIR}/cluon-complete.hpp
+      COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/cluon-complete.cpp
+      COMMAND ${CMAKE_CXX_COMPILER} -o ${CMAKE_BINARY_DIR}/cluon-msc ${CMAKE_BINARY_DIR}/cluon-complete.cpp -std=c++14 -pthread -D HAVE_CLUON_MSC
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${CLUON_COMPLETE})
 ENDIF()
 
 ################################################################################

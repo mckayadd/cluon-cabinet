@@ -191,8 +191,8 @@ int32_t main(int32_t argc, char **argv) {
               value.mv_size = sVal.size();
               value.mv_data = const_cast<char*>(sVal.c_str());
 
-							XXH64_hash_t hash = XXH64(value.mv_data, value.mv_size, 0);
-//							std::cerr << "h: " << std::hex << "0x" << hash << std::dec << std::endl;
+              XXH64_hash_t hash = XXH64(value.mv_data, value.mv_size, 0);
+//              std::cerr << "h: " << std::hex << "0x" << hash << std::dec << std::endl;
 /*
               // Compress value using zstd.
               std::string compressedValue{};
@@ -239,7 +239,7 @@ int32_t main(int32_t argc, char **argv) {
               // b0-b7: int64_t for timeStamp in nanoseconds
               // b8-b11: int32_t for dataType
               // b12-b15: uint32_t for senderStamp
-							// b16-b23: uint64_t for xxhash
+              // b16-b23: uint64_t for xxhash
               // b24: uint8_t for version
               uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/};
               {
@@ -271,12 +271,12 @@ int32_t main(int32_t argc, char **argv) {
                     value.mv_size = 0;
                     value.mv_data = 0;
                   }
-									else {
+                  else {
                     // b25-b26: uint16_t: length of the value
-										const uint16_t length = 0;
+                    const uint16_t length = 0;
                     std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&length), sizeof(uint16_t));
                     offset += sizeof(uint16_t);
-									}
+                  }
                 }
               }
 
@@ -287,31 +287,31 @@ int32_t main(int32_t argc, char **argv) {
                 
                 key.mv_size = offset;
                 key.mv_data = _key.data();
-								{
+                {
                   bool duplicate{false};
                   MDB_cursor *cursor{nullptr};
                   if (MDB_SUCCESS == mdb_cursor_open(txn, mapOfDatabases["all"], &cursor)) {
-										// Check if the key exists; if so, retrieve the key and check hash to skip duplicated data.
-										MDB_val tmpKey = key;
-										MDB_val tmpVal;
-										if (MDB_SUCCESS == mdb_cursor_get(cursor, &tmpKey, &tmpVal, MDB_SET_KEY)) {
-											// Extract xxhash from found key and compare with calculated key to maybe skip adding this value.
-											const uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/
-																						+ sizeof(int32_t) /*field 2: dataType*/
-																						+ sizeof(uint32_t) /*field 3: senderStamp*/};
-											char *ptr = static_cast<char*>(tmpKey.mv_data);
-											const XXH64_hash_t tmpHash = *(reinterpret_cast<XXH64_hash_t*>(ptr + offset));
+                    // Check if the key exists; if so, retrieve the key and check hash to skip duplicated data.
+                    MDB_val tmpKey = key;
+                    MDB_val tmpVal;
+                    if (MDB_SUCCESS == mdb_cursor_get(cursor, &tmpKey, &tmpVal, MDB_SET_KEY)) {
+                      // Extract xxhash from found key and compare with calculated key to maybe skip adding this value.
+                      const uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/
+                                            + sizeof(int32_t) /*field 2: dataType*/
+                                            + sizeof(uint32_t) /*field 3: senderStamp*/};
+                      char *ptr = static_cast<char*>(tmpKey.mv_data);
+                      const XXH64_hash_t tmpHash = *(reinterpret_cast<XXH64_hash_t*>(ptr + offset));
 //std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << tmpHash << std::dec <<std::endl;
-											duplicate = (hash == tmpHash);
-										}
+                      duplicate = (hash == tmpHash);
+                    }
                   }
                   mdb_cursor_close(cursor);
                   if (duplicate) {
                     // value is existing, skip storing
                     retCode = 0;
                     break;
-									}
-								}
+                  }
+                }
                
                 // Try next slot if already taken.
                 sampleTimeStampOffsetToAvoidCollision++;
