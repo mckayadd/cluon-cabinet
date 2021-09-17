@@ -223,7 +223,7 @@ int32_t main(int32_t argc, char **argv) {
                 mapOfDatabases["all"] = dbi;
                 mdb_set_compare(txn, mapOfDatabases["all"], &compareKeys);
               }
-
+#if 0
               // b0-b7: int64_t for timeStamp in nanoseconds
               // b8-b11: int32_t for dataType
               // b12-b15: uint32_t for senderStamp
@@ -267,14 +267,25 @@ int32_t main(int32_t argc, char **argv) {
                   }
                 }
               }
+#endif
+              cabinet::Key k;
+              k.dataType(e.dataType())
+                .senderStamp(e.senderStamp())
+                .hash(hash)
+                .version(0)
+                .length(value.mv_size);
 
               int64_t sampleTimeStampOffsetToAvoidCollision{0};
               do {
-                const int64_t timeStamp = (sampleTimeStamp * 1000UL) + sampleTimeStampOffsetToAvoidCollision;
-                std::memcpy(_key.data(), reinterpret_cast<const char*>(&timeStamp), sizeof(int64_t));
-                
-                key.mv_size = offset;
+                k.timeStamp(sampleTimeStamp * 1000UL + sampleTimeStampOffsetToAvoidCollision);
+                key.mv_size = setKey(k, _key.data(), _key.capacity());
                 key.mv_data = _key.data();
+
+//                const int64_t timeStamp = (sampleTimeStamp * 1000UL) + sampleTimeStampOffsetToAvoidCollision;
+//                std::memcpy(_key.data(), reinterpret_cast<const char*>(&timeStamp), sizeof(int64_t));
+
+                //key.mv_size = offset;
+                //key.mv_data = _key.data();
                 {
                   bool duplicate{false};
                   MDB_cursor *cursor{nullptr};
@@ -284,13 +295,14 @@ int32_t main(int32_t argc, char **argv) {
                     MDB_val tmpVal;
                     if (MDB_SUCCESS == mdb_cursor_get(cursor, &tmpKey, &tmpVal, MDB_SET_KEY)) {
                       // Extract xxhash from found key and compare with calculated key to maybe skip adding this value.
-                      const uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/
-                                            + sizeof(int32_t) /*field 2: dataType*/
-                                            + sizeof(uint32_t) /*field 3: senderStamp*/};
                       char *ptr = static_cast<char*>(tmpKey.mv_data);
-                      const XXH64_hash_t tmpHash = *(reinterpret_cast<XXH64_hash_t*>(ptr + offset));
-//std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << tmpHash << std::dec <<std::endl;
-                      duplicate = (hash == tmpHash);
+                      cabinet::Key storedKey = getKey(ptr, tmpKey.mv_size);
+//                      const uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/
+//                                            + sizeof(int32_t) /*field 2: dataType*/
+//                                            + sizeof(uint32_t) /*field 3: senderStamp*/};
+//                      const XXH64_hash_t tmpHash = *(reinterpret_cast<XXH64_hash_t*>(ptr + offset));
+std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec <<std::endl;
+                      duplicate = (hash == storedKey.hash());
                     }
                   }
                   mdb_cursor_close(cursor);
