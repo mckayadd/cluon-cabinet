@@ -30,8 +30,7 @@ inline int compareKeys(const MDB_val *a, const MDB_val *b) {
   int64_t rhs = *(static_cast<int64_t*>(b->mv_data));
   lhs = be64toh(lhs);
   rhs = be64toh(rhs);
-  //const int64_t delta{lhs - rhs};
-  const int64_t delta{*(static_cast<int64_t*>(a->mv_data)) - *(static_cast<int64_t*>(b->mv_data))};
+  const int64_t delta{lhs - rhs};
   return (delta < 0 ? -1 : (delta > 0 ? 1 : 0));
 };
 

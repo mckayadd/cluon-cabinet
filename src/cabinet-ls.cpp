@@ -7,6 +7,8 @@
  */
 
 #include "cluon-complete.hpp"
+#include "key.hpp"
+#include "db.hpp"
 #include "lmdb.h"
 
 #include <cstdio>
@@ -83,8 +85,11 @@ int32_t main(int32_t argc, char **argv) {
         if (!(retCode = mdb_cursor_open(txn, dbi, &cursor))) {
           MDB_val key;
           while ((retCode = mdb_cursor_get(cursor, &key, nullptr, MDB_NEXT_NODUP)) == 0) {
+            const char *ptr = static_cast<char*>(key.mv_data);
+            cabinet::Key storedKey = getKey(ptr, key.mv_size);
+            std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
+/*
             uint16_t offset{0};
-            char *ptr = static_cast<char*>(key.mv_data);
             const int64_t timeStamp = *(reinterpret_cast<int64_t*>(ptr + offset));
             offset += sizeof(int64_t);
 
@@ -93,8 +98,7 @@ int32_t main(int32_t argc, char **argv) {
 
             const uint32_t senderStamp = *(reinterpret_cast<uint32_t*>(ptr + offset));
             offset += sizeof(uint32_t);
-
-            std::cout << timeStamp << ": " << dataType << "/" << senderStamp << std::endl;
+*/
           }
           mdb_cursor_close(cursor);
         }
