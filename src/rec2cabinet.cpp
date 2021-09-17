@@ -101,22 +101,6 @@ int32_t main(int32_t argc, char **argv) {
       }
     }
 
-    {
-      cabinet::Key k;
-      k.timeStamp(12345)
-       .dataType(4321)
-       .senderStamp(223344)
-       .hash(987654321)
-       .version(3)
-       .length(531);
-
-       std::stringstream buffer;
-       k.accept([](uint32_t, const std::string &, const std::string &) {},
-                   [&buffer](uint32_t, std::string &&, std::string &&n, auto v) { buffer << n << " = " << v << '\n'; },
-                   []() {});
-       std::cout << buffer.str() << std::endl;
-    }
-
     // Iterate through .rec file and fill database.
     {
       std::map<std::string, MDB_dbi> mapOfDatabases{};
@@ -224,27 +208,6 @@ int32_t main(int32_t argc, char **argv) {
                 mdb_set_compare(txn, mapOfDatabases["all"], &compareKeys);
               }
 #if 0
-              // b0-b7: int64_t for timeStamp in nanoseconds
-              // b8-b11: int32_t for dataType
-              // b12-b15: uint32_t for senderStamp
-              // b16-b23: uint64_t for xxhash
-              // b24: uint8_t for version
-              uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/};
-              {
-                const int32_t dataType{e.dataType()};
-                std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&dataType), sizeof(int32_t));
-                offset += sizeof(int32_t);
-
-                const uint32_t senderStamp{e.senderStamp()};
-                std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&senderStamp), sizeof(uint32_t));
-                offset += sizeof(uint32_t);
-
-                std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&hash), sizeof(XXH64_hash_t));
-                offset += sizeof(XXH64_hash_t);
-
-                const uint8_t version{0};
-                std::memcpy(_key.data() + offset, reinterpret_cast<const char*>(&version), sizeof(uint8_t));
-                offset += sizeof(uint8_t);
                 {
                   // version 0:
                   // if (511 - (value.mv_size + offset) > 0) --> store value directly in key 
@@ -266,7 +229,6 @@ int32_t main(int32_t argc, char **argv) {
                     offset += sizeof(uint16_t);
                   }
                 }
-              }
 #endif
               cabinet::Key k;
               k.dataType(e.dataType())
@@ -281,11 +243,7 @@ int32_t main(int32_t argc, char **argv) {
                 key.mv_size = setKey(k, _key.data(), _key.capacity());
                 key.mv_data = _key.data();
 
-//                const int64_t timeStamp = (sampleTimeStamp * 1000UL) + sampleTimeStampOffsetToAvoidCollision;
-//                std::memcpy(_key.data(), reinterpret_cast<const char*>(&timeStamp), sizeof(int64_t));
-
-                //key.mv_size = offset;
-                //key.mv_data = _key.data();
+                // Check for duplicated entries.
                 {
                   bool duplicate{false};
                   MDB_cursor *cursor{nullptr};
@@ -295,13 +253,9 @@ int32_t main(int32_t argc, char **argv) {
                     MDB_val tmpVal;
                     if (MDB_SUCCESS == mdb_cursor_get(cursor, &tmpKey, &tmpVal, MDB_SET_KEY)) {
                       // Extract xxhash from found key and compare with calculated key to maybe skip adding this value.
-                      char *ptr = static_cast<char*>(tmpKey.mv_data);
+                      const char *ptr = static_cast<char*>(tmpKey.mv_data);
                       cabinet::Key storedKey = getKey(ptr, tmpKey.mv_size);
-//                      const uint16_t offset{sizeof(int64_t) /*field 1: timeStamp in nanoseconds*/
-//                                            + sizeof(int32_t) /*field 2: dataType*/
-//                                            + sizeof(uint32_t) /*field 3: senderStamp*/};
-//                      const XXH64_hash_t tmpHash = *(reinterpret_cast<XXH64_hash_t*>(ptr + offset));
-std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec <<std::endl;
+                      // std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec <<std::endl;
                       duplicate = (hash == storedKey.hash());
                     }
                   }
