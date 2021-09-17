@@ -26,8 +26,8 @@ inline int compareKeys(const MDB_val *a, const MDB_val *b) {
     return 0;
   }
   // b0-b7: int64_t for timeStamp in nanoseconds
-  int64_t lhs = *(static_cast<int64_t*>(a->mv_data));
-  int64_t rhs = *(static_cast<int64_t*>(b->mv_data));
+  int64_t lhs{*(static_cast<int64_t*>(a->mv_data))};
+  int64_t rhs{*(static_cast<int64_t*>(b->mv_data))};
   lhs = be64toh(lhs);
   rhs = be64toh(rhs);
   const int64_t delta{lhs - rhs};

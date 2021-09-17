@@ -88,17 +88,6 @@ int32_t main(int32_t argc, char **argv) {
             const char *ptr = static_cast<char*>(key.mv_data);
             cabinet::Key storedKey = getKey(ptr, key.mv_size);
             std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
-/*
-            uint16_t offset{0};
-            const int64_t timeStamp = *(reinterpret_cast<int64_t*>(ptr + offset));
-            offset += sizeof(int64_t);
-
-            const int32_t dataType = *(reinterpret_cast<int32_t*>(ptr + offset));
-            offset += sizeof(int32_t);
-
-            const uint32_t senderStamp = *(reinterpret_cast<uint32_t*>(ptr + offset));
-            offset += sizeof(uint32_t);
-*/
           }
           mdb_cursor_close(cursor);
         }
