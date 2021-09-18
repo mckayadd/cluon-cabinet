@@ -6,15 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#ifdef WIN32
+    #define UNLINK _unlink
+#else
+    #include <unistd.h>
+    #define UNLINK unlink
+#endif
+
 #include "catch.hpp"
+#include "rec2cabinet.hpp"
 
-#include "cluon-complete.hpp"
-#include "key.hpp"
-
-#include <cstring>
-#include <iostream>
-#include <iomanip>
-#include <vector>
+#include <fstream>
+#include <string>
 
 TEST_CASE("Test rec2cabinet") {
   unsigned char recfile[] = {
@@ -123,4 +126,23 @@ TEST_CASE("Test rec2cabinet") {
     0xa2, 0xce, 0xa5, 0xc9, 0x0b, 0x10, 0x94, 0xce, 0x74, 0x30, 0x01
   };
   unsigned int recfile_len = 1235;
+
+  const bool VERBOSE{true};
+  const std::string RECFILENAME{"tests-rec2cabinet.rec"};
+  const std::string CABINETNAME{"tests-rec2cabinet.cab"};
+  const std::string CABINETNAME_LOCK{"tests-rec2cabinet.cab-lock"};
+  UNLINK(RECFILENAME.c_str());
+  UNLINK(CABINETNAME.c_str());
+  UNLINK(CABINETNAME_LOCK.c_str());
+  {
+    std::fstream rec(RECFILENAME.c_str(), std::ios::out|std::ios::binary|std::ios::trunc);
+    rec.write(reinterpret_cast<char*>(recfile), recfile_len);
+    rec.flush();
+    rec.close();
+  }
+  int retCode = rec2cabinet("tests-rec2cabinet", RECFILENAME, CABINETNAME, VERBOSE);
+  std::cout << "retCode = " << retCode << std::endl;
+  UNLINK(RECFILENAME.c_str());
+  UNLINK(CABINETNAME.c_str());
+  UNLINK(CABINETNAME_LOCK.c_str());
 }
