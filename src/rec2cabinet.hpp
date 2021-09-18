@@ -6,6 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#ifndef REC2CABINET_HPP
+#define REC2CABINET_HPP
+
 #include "cluon-complete.hpp"
 #include "key.hpp"
 #include "db.hpp"
@@ -301,4 +304,4 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
   return retCode;
 }
 
-
+#endif

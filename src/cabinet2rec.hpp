@@ -6,6 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#ifndef CABINET2REC_HPP
+#define CABINET2REC_HPP
+
 #include "cluon-complete.hpp"
 #include "db.hpp"
 #include "key.hpp"
@@ -133,6 +136,7 @@ inline int cabinet2rec(const std::string &ARGV0, const std::string &CABINET, con
 		if (dbi) {
 			mdb_dbi_close(env, dbi);
 		}
+    retCode = 0;
 	}
 	else {
 		std::cerr << "[" << ARGV0 << "]: Error opening " << REC << std::endl; 
@@ -142,3 +146,5 @@ inline int cabinet2rec(const std::string &ARGV0, const std::string &CABINET, con
 	}
   return retCode;
 }
+
+#endif

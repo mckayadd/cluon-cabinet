@@ -15,12 +15,13 @@
 
 #include "catch.hpp"
 #include "rec2cabinet.hpp"
+#include "cabinet2rec.hpp"
 
 #include <fstream>
 #include <string>
 
 TEST_CASE("Test rec2cabinet") {
-  unsigned char recfile[] = {
+  const unsigned char recfile[] = {
     0x0d, 0xa4, 0x3c, 0x00, 0x00, 0x08, 0x26, 0x12, 0x12, 0x09, 0x6c, 0x26,
     0x20, 0x6c, 0x00, 0xe3, 0x4c, 0x40, 0x19, 0xd0, 0xfc, 0xe2, 0x8f, 0x66,
     0x88, 0x29, 0x40, 0x1a, 0x0a, 0x08, 0xa2, 0xce, 0xa5, 0xc9, 0x0b, 0x10,
@@ -131,18 +132,30 @@ TEST_CASE("Test rec2cabinet") {
   const std::string RECFILENAME{"tests-rec2cabinet.rec"};
   const std::string CABINETNAME{"tests-rec2cabinet.cab"};
   const std::string CABINETNAME_LOCK{"tests-rec2cabinet.cab-lock"};
+  const std::string REC2FILENAME{"tests-rec2cabinet.rec2"};
   UNLINK(RECFILENAME.c_str());
   UNLINK(CABINETNAME.c_str());
   UNLINK(CABINETNAME_LOCK.c_str());
+  UNLINK(REC2FILENAME.c_str());
   {
     std::fstream rec(RECFILENAME.c_str(), std::ios::out|std::ios::binary|std::ios::trunc);
-    rec.write(reinterpret_cast<char*>(recfile), recfile_len);
+    rec.write(reinterpret_cast<const char*>(recfile), recfile_len);
     rec.flush();
     rec.close();
   }
-  int retCode = rec2cabinet("tests-rec2cabinet", RECFILENAME, CABINETNAME, VERBOSE);
-  std::cout << "retCode = " << retCode << std::endl;
+  REQUIRE(0 == rec2cabinet("tests-rec2cabinet", RECFILENAME, CABINETNAME, VERBOSE));
   UNLINK(RECFILENAME.c_str());
+
+  REQUIRE(0 == cabinet2rec("tests-rec2cabinet", CABINETNAME, REC2FILENAME, VERBOSE));
+  {
+    std::fstream fin{REC2FILENAME.c_str(), std::ios::in|std::ios::binary};
+    if (fin.good()) {
+      const std::string s{static_cast<std::stringstream const&>(std::stringstream() << fin.rdbuf()).str()};
+      REQUIRE(s.size() == recfile_len);
+      REQUIRE(0 == strncmp(reinterpret_cast<const char*>(recfile), s.c_str(), recfile_len));
+    }
+  }
   UNLINK(CABINETNAME.c_str());
   UNLINK(CABINETNAME_LOCK.c_str());
+  UNLINK(REC2FILENAME.c_str());
 }

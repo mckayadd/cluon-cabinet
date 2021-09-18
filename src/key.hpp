@@ -6,6 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#ifndef KEY_HPP
+#define KEY_HPP
+
 #include "db.hpp"
 #include "lmdb.h"
 
@@ -117,3 +120,5 @@ inline cabinet::Key getKey(const char *src, const size_t &len) noexcept {
   }
   return k;
 }
+
+#endif
