@@ -70,7 +70,7 @@ inline size_t setKey(cabinet::Key k, char *dest, const size_t &len) noexcept {
                 else if (8 == sizeof(v)) { hton = htobe64(v); }
                 // dump values as specified in .odvd file
                 std::memcpy(dest + offset, reinterpret_cast<const char*>(&hton), sizeof(hton));
-								offset += sizeof(hton);
+                offset += sizeof(hton);
               }
              },
              [](){}
@@ -105,7 +105,7 @@ inline cabinet::Key getKey(const char *src, const size_t &len) noexcept {
 
                 // read values as specified in .odvd file
                 std::memcpy(reinterpret_cast<char*>(&ntoh), src + offset, sizeof(ntoh));
-								offset += sizeof(ntoh);
+                offset += sizeof(ntoh);
 
                 // convert values to host byte order.
                 if (2 == sizeof(v)) { ntoh = be16toh(v); }
