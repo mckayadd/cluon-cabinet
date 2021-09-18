@@ -91,7 +91,7 @@ inline int cabinet2rec(const std::string &ARGV0, const std::string &CABINET, con
             std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from value: " << std::hex << "0x" << hash << std::dec << std::endl;
           }
 
-					recFile.write(static_cast<char*>(val.mv_data), val.mv_size);
+          recFile.write(static_cast<char*>(val.mv_data), val.mv_size);
 					entries++;
 #if 0
 					char *ptr = static_cast<char*>(key.mv_data);
