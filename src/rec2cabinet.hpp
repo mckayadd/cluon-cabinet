@@ -30,9 +30,9 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
   const uint64_t MAXKEYSIZE = 511;
 
   // lambda to check the interaction with the database.
-  auto checkErrorCode = [_argv=ARGV0](int32_t rc, int32_t line, std::string caller) {
+  auto checkErrorCode = [argv0=ARGV0](int32_t rc, int32_t line, std::string caller) {
     if (0 != rc) {
-      std::cerr << "[" << _argv[0] << "]: " << caller << ", line " << line << ": (" << rc << ") " << mdb_strerror(rc) << std::endl; 
+      std::cerr << "[" << argv0 << "]: " << caller << ", line " << line << ": (" << rc << ") " << mdb_strerror(rc) << std::endl; 
     }
     return (0 == rc);
   };
