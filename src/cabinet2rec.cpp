@@ -22,7 +22,10 @@
 #include <map>
 #include <string>
 
-typedef unsigned __int128 uint128_t;
+struct space_out : std::numpunct<char> {
+  char do_thousands_sep()   const { return ','; }  // separate with spaces
+  std::string do_grouping() const { return "\3"; } // groups of 3 digit
+};
 
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
@@ -35,6 +38,8 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "Example: " << argv[0] << " --cabinet=myStore.cabinet --rec=myRecFile.rec" << std::endl;
     retCode = 1;
   } else {
+    std::clog.imbue(std::locale(std::cout.getloc(), new space_out));
+
     const std::string CABINET{commandlineArguments["cabinet"]};
     const std::string REC{(commandlineArguments["rec"].size() != 0) ? commandlineArguments["rec"] : "./" + CABINET + ".rec"};
 

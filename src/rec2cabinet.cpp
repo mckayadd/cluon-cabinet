@@ -30,22 +30,23 @@ struct space_out : std::numpunct<char> {
   std::string do_grouping() const { return "\3"; } // groups of 3 digit
 };
 
-
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
   if (0 == commandlineArguments.count("rec")) {
     std::cerr << argv[0] << " transforms a .rec file with Envelopes to an lmdb-based key/value-database." << std::endl;
     std::cerr << "If the specified database exists, the content of the .rec file is added." << std::endl;
-    std::cerr << "Usage:   " << argv[0] << " --rec=MyFile.rec" << std::endl;
+    std::cerr << "Usage:   " << argv[0] << " --rec=MyFile.rec [--verbose] [--cabinet=myFile.cab]" << std::endl;
     std::cerr << "         --rec:     name of the recording file" << std::endl;
     std::cerr << "         --cabinet: name of the database file (optional; otherwise, a new file based on the .rec file with .cabinet as suffix is created)" << std::endl;
-    std::cerr << "Example: " << argv[0] << " --rec=myFile.rec --cabinet=myStore.cabinet" << std::endl;
+    std::cerr << "         --verbose: display information" << std::endl;
+    std::cerr << "Example: " << argv[0] << " --rec=myFile.rec --cabinet=myStore.cab" << std::endl;
     retCode = 1;
   } else {
     std::clog.imbue(std::locale(std::cout.getloc(), new space_out));
     const std::string REC{commandlineArguments["rec"]};
     const std::string CABINET{(commandlineArguments["cabinet"].size() != 0) ? commandlineArguments["cabinet"] : "./" + REC + ".cabinet"};
+    const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
 
     MDB_env *env{nullptr};
     const int numberOfDatabases{100};
@@ -154,8 +155,6 @@ int32_t main(int32_t argc, char **argv) {
               cluon::data::Envelope e{std::move(retVal.second)};
               auto sampleTimeStamp{cluon::time::toMicroseconds(e.sampleTimeStamp())};
 
-              // TODO: create xxhash over Envelope to avoid duplicated entries
-
               // Create bytes to store in "all".
               const std::string sVal{cluon::serializeEnvelope(std::move(e))};
               MDB_val value;
@@ -163,7 +162,9 @@ int32_t main(int32_t argc, char **argv) {
               value.mv_data = const_cast<char*>(sVal.c_str());
 
               XXH64_hash_t hash = XXH64(value.mv_data, value.mv_size, 0);
-              //std::cerr << "h: " << std::hex << "0x" << hash << std::dec << ", s = " << value.mv_size << std::endl;
+              if (VERBOSE) {
+                std::clog << "hash: " << std::hex << "0x" << hash << std::dec << ", value size = " << value.mv_size << std::endl;
+              }
 /*
               // Compress value using zstd.
               std::string compressedValue{};
@@ -260,7 +261,9 @@ int32_t main(int32_t argc, char **argv) {
                       const char *ptr = static_cast<char*>(tmpKey.mv_data);
                       cabinet::Key storedKey = getKey(ptr, tmpKey.mv_size);
                       duplicate = (hash == storedKey.hash());
-                      //std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec << ", d = " << duplicate << std::endl;
+                      if (VERBOSE) {
+                        std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec << ", is duplicate = " << duplicate << std::endl;
+                      }
                     }
                   }
                   mdb_cursor_close(cursor);

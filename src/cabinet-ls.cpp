@@ -20,8 +20,6 @@
 #include <map>
 #include <string>
 
-typedef unsigned __int128 uint128_t;
-
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
