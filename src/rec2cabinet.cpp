@@ -105,8 +105,6 @@ int32_t main(int32_t argc, char **argv) {
     {
       std::map<std::string, MDB_dbi> mapOfDatabases{};
       MDB_txn *txn{nullptr};
-      MDB_val key;
-      MDB_val value;
 
       uint32_t entries{0};
       uint64_t totalBytesRead = 0;
@@ -160,11 +158,12 @@ int32_t main(int32_t argc, char **argv) {
 
               // Create bytes to store in "all".
               const std::string sVal{cluon::serializeEnvelope(std::move(e))};
+              MDB_val value;
               value.mv_size = sVal.size();
               value.mv_data = const_cast<char*>(sVal.c_str());
 
               XXH64_hash_t hash = XXH64(value.mv_data, value.mv_size, 0);
-//              std::cerr << "h: " << std::hex << "0x" << hash << std::dec << std::endl;
+              std::cerr << "h: " << std::hex << "0x" << hash << std::dec << ", s = " << value.mv_size << std::endl;
 /*
               // Compress value using zstd.
               std::string compressedValue{};
@@ -237,11 +236,15 @@ int32_t main(int32_t argc, char **argv) {
                 .version(0)
                 .length(value.mv_size);
 
+              MDB_val key;
               int64_t sampleTimeStampOffsetToAvoidCollision{0};
               do {
                 k.timeStamp(sampleTimeStamp * 1000UL + sampleTimeStampOffsetToAvoidCollision);
                 key.mv_size = setKey(k, _key.data(), _key.capacity());
                 key.mv_data = _key.data();
+
+                value.mv_size = sVal.size();
+                value.mv_data = const_cast<char*>(sVal.c_str());
 
                 // Check for duplicated entries.
                 {
@@ -255,8 +258,8 @@ int32_t main(int32_t argc, char **argv) {
                       // Extract xxhash from found key and compare with calculated key to maybe skip adding this value.
                       const char *ptr = static_cast<char*>(tmpKey.mv_data);
                       cabinet::Key storedKey = getKey(ptr, tmpKey.mv_size);
-                      // std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec <<std::endl;
                       duplicate = (hash == storedKey.hash());
+                      std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec << ", d = " << duplicate << std::endl;
                     }
                   }
                   mdb_cursor_close(cursor);
@@ -266,6 +269,7 @@ int32_t main(int32_t argc, char **argv) {
                     break;
                   }
                 }
+                std::cerr << "s = " << value.mv_size << std::endl;
                
                 // Try next slot if already taken.
                 sampleTimeStampOffsetToAvoidCollision++;

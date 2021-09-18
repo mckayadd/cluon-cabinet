@@ -10,6 +10,7 @@
 #include "db.hpp"
 #include "key.hpp"
 #include "lmdb.h"
+#include "xxhash.h"
 
 #include <cstdio>
 #include <cstring>
@@ -97,7 +98,11 @@ int32_t main(int32_t argc, char **argv) {
             const char *ptr = static_cast<char*>(key.mv_data);
             cabinet::Key storedKey = getKey(ptr, key.mv_size);
             std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
+            std::cerr << "vs = " << val.mv_size << std::endl;
  
+            XXH64_hash_t hash = XXH64(val.mv_data, val.mv_size, 0);
+            std::cerr << "h: " << std::hex << "0x" << hash << std::dec << std::endl;
+
             recFile.write(static_cast<char*>(val.mv_data), val.mv_size);
             entries++;
 #if 0
