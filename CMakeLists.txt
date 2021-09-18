@@ -138,7 +138,7 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/db.hpp
 ################################################################################
 # Create executables.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(rec2cabinet ${LIBRARIES})
 
 add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
@@ -153,7 +153,7 @@ add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAK
 target_link_libraries(key-runner ${LIBRARIES})
 add_test(NAME key-runner COMMAND key-runner)
 
-add_executable(rec2cabinet-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-rec2cabinet.cpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(rec2cabinet-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-rec2cabinet.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(rec2cabinet-runner ${LIBRARIES})
 add_test(NAME rec2cabinet-runner COMMAND rec2cabinet-runner)
 
