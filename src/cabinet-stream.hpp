@@ -83,7 +83,6 @@ inline int cabinet_stream(const std::string &ARGV0, const std::string &CABINET, 
       std::cerr << "[" << ARGV0 << "]: Found " << numberOfEntries << " entries in database 'all' in " << CABINET << std::endl;
     }
 
-    std::cout.setf(std::ios::binary);
     MDB_cursor *cursor;
     if (!(retCode = mdb_cursor_open(txn, dbi, &cursor))) {
       uint64_t entries{0};
