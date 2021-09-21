@@ -144,6 +144,9 @@ target_link_libraries(rec2cabinet ${LIBRARIES})
 add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(cabinet2rec ${LIBRARIES})
 
+add_executable(cabinet-stream ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-stream.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+target_link_libraries(cabinet-stream ${LIBRARIES})
+
 add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
 target_link_libraries(cabinet-ls ${LIBRARIES})
 
@@ -160,4 +163,5 @@ add_test(NAME rec2cabinet-runner COMMAND rec2cabinet-runner)
 ################################################################################
 install(TARGETS rec2cabinet DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet2rec DESTINATION bin COMPONENT ${PROJECT_NAME})
+install(TARGETS cabinet-stream DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-ls DESTINATION bin COMPONENT ${PROJECT_NAME})
