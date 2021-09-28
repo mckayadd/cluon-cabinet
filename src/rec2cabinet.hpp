@@ -14,6 +14,7 @@
 #include "db.hpp"
 #include "lmdb.h"
 #include "lz4.h"
+#include "lz4hc.h"
 #include "xxhash.h"
 
 #include <cstdio>
@@ -130,7 +131,8 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
               }
               std::vector<char> compressedData;
               compressedData.reserve(expectedCompressedSize);
-              const ssize_t compressedSize = LZ4_compress_default(sVal.c_str(), compressedData.data(), sVal.size(), compressedData.capacity());
+              //const ssize_t compressedSize = LZ4_compress_default(sVal.c_str(), compressedData.data(), sVal.size(), compressedData.capacity());
+              const ssize_t compressedSize = LZ4_compress_HC(sVal.c_str(), compressedData.data(), sVal.size(), compressedData.capacity(), LZ4HC_CLEVEL_MAX);
               if (VERBOSE) {
                 std::clog << "lz4 actual size: " << compressedSize << std::endl;
               }
