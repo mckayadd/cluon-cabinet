@@ -193,6 +193,7 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             int64_t sampleTimeStampOffsetToAvoidCollision{0};
             do {
               k.timeStamp(sampleTimeStamp * 1000UL + sampleTimeStampOffsetToAvoidCollision);
+
               key.mv_size = setKey(k, _key.data(), _key.capacity());
               key.mv_data = _key.data();
 
