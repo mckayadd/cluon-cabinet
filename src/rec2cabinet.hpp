@@ -87,7 +87,6 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
     MDB_txn *txn{nullptr};
 
     uint32_t entries{0};
-    uint64_t totalBytesRead = 0;
     uint64_t totalBytesWritten = 0;
 
     std::fstream recFile;
@@ -97,6 +96,7 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
       // Determine file size to display progress.
       recFile.seekg(0, recFile.end);
       int64_t fileLength = recFile.tellg();
+      uint64_t totalBytesRead = 0;
       recFile.seekg(0, recFile.beg);
 
       // Read complete file and store file positions to Envelopes to create

@@ -68,6 +68,8 @@ inline int cabinet2rec(const std::string &ARGV0, const std::string &CABINET, con
       std::clog << "[" << ARGV0 << "]: No database 'all' found in " << CABINET << "." << std::endl;
     }
     else {
+      mdb_set_compare(txn, dbi, &compareKeys);
+
       uint64_t numberOfEntries{0};
       MDB_stat stat;
       if (!mdb_stat(txn, dbi, &stat)) {

@@ -71,6 +71,8 @@ int32_t main(int32_t argc, char **argv) {
         std::clog << "[" << argv[0] << "]: No database 'all' found in " << CABINET << "." << std::endl;
       }
       else {
+        mdb_set_compare(txn, dbi, &compareKeys);
+
         uint64_t numberOfEntries{0};
         MDB_stat stat;
         if (!mdb_stat(txn, dbi, &stat)) {
