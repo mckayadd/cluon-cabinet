@@ -13,6 +13,7 @@
 #include "key.hpp"
 #include "db.hpp"
 #include "lmdb.h"
+#include "lz4.h"
 #include "xxhash.h"
 
 #include <cstdio>
@@ -119,6 +120,30 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             XXH64_hash_t hash = XXH64(sVal.c_str(), sVal.size(), 0);
             if (VERBOSE) {
               std::clog << "hash: " << std::hex << "0x" << hash << std::dec << ", value size = " << sVal.size() << std::endl;
+            }
+
+            // Compress value via lz4.
+            {
+              ssize_t expectedCompressedSize = LZ4_compressBound(sVal.size());
+              if (VERBOSE) {
+                std::clog << "lz4 expected size: " << expectedCompressedSize << std::endl;
+              }
+              std::vector<char> compressedData;
+              compressedData.reserve(expectedCompressedSize);
+              const ssize_t compressedSize = LZ4_compress_default(sVal.c_str(), compressedData.data(), sVal.size(), compressedData.capacity());
+              if (VERBOSE) {
+                std::clog << "lz4 actual size: " << compressedSize << std::endl;
+              }
+
+              {
+                std::vector<char> decompressedData;
+                decompressedData.reserve(sVal.size());
+                const int decompressedSize = LZ4_decompress_safe(compressedData.data(), decompressedData.data(), compressedSize, decompressedData.capacity());
+                XXH64_hash_t hashDecompressed = XXH64(decompressedData.data(), decompressedSize, 0);
+                if (VERBOSE) {
+                  std::clog << "lz4 decompressed size: " << decompressedSize << ", org hash: " << std::hex << "0x" << hash << ", dec hash: " << "0x" << hashDecompressed << std::dec << std::endl << std::endl;
+                }
+              }
             }
 /*
             // Compress value using zstd.
