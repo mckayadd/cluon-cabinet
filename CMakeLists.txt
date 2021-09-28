@@ -78,6 +78,25 @@ IF(UNIX)
   SET_SOURCE_FILES_PROPERTIES(${xxhash_SOURCE_DIR}/xxhash.c PROPERTIES COMPILE_FLAGS "${XXHASH_COMPILE_FLAGS}")
 ENDIF()
 
+SET(lz4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lz4/lib")
+INCLUDE_DIRECTORIES (${lz4_SOURCE_DIR})
+SET (lz4-sources
+  ${lz4_SOURCE_DIR}/lz4.c
+  ${lz4_SOURCE_DIR}/lz4frame.c
+  ${lz4_SOURCE_DIR}/lz4hc.c
+  ${lz4_SOURCE_DIR}/xxhash.c
+)
+# Set compile flags for lz4.
+IF(UNIX)
+  set(LZ4_COMPILE_FLAGS "-Wall -Wextra -Wcast-qual -Wcast-align -Wshadow \
+                         -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes \
+                         -Wundef -Wpointer-arith -Wstrict-aliasing=1 \
+                         -DXXH_NAMESPACE=LZ4_ -O3")
+  SET_SOURCE_FILES_PROPERTIES(${lz4_SOURCE_DIR}/lz4.c PROPERTIES COMPILE_FLAGS "${LZ4_COMPILE_FLAGS}")
+  SET_SOURCE_FILES_PROPERTIES(${lz4_SOURCE_DIR}/lz4frame.c PROPERTIES COMPILE_FLAGS "${LZ4_COMPILE_FLAGS}")
+  SET_SOURCE_FILES_PROPERTIES(${lz4_SOURCE_DIR}/lz4hc.c PROPERTIES COMPILE_FLAGS "${LZ4_COMPILE_FLAGS}")
+  SET_SOURCE_FILES_PROPERTIES(${lz4_SOURCE_DIR}/xxhash.c PROPERTIES COMPILE_FLAGS "${LZ4_COMPILE_FLAGS}")
+ENDIF()
 
 # Threads are necessary for linking the resulting binaries as UDPReceiver is running in parallel.
 # assume built-in pthreads on MacOS
@@ -136,27 +155,34 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/db.hpp
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${DB_MESSAGE_SET} ${CMAKE_BINARY_DIR}/cluon-msc)
 
 ################################################################################
+# Gather all 3rd party libraries.
+add_library(${CLUON-CABINET-3RDPARTIES}-objects OBJECT ${lmdb-sources} ${xxhash-sources} ${lz4-sources})
+set_target_properties(${CLUON-CABINET-3RDPARTIES}-objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(cluon-cabinet-3rdparties-static STATIC $<TARGET_OBJECTS:${CLUON-CABINET-3RDPARTIES}-objects>)
+set(LIBRARIES ${LIBRARIES} cluon-cabinet-3rdparties-static)
+
+################################################################################
 # Create executables.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp)
 target_link_libraries(rec2cabinet ${LIBRARIES})
 
-add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp)
 target_link_libraries(cabinet2rec ${LIBRARIES})
 
-add_executable(cabinet-stream ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-stream.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(cabinet-stream ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-stream.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp)
 target_link_libraries(cabinet-stream ${LIBRARIES})
 
-add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp)
 target_link_libraries(cabinet-ls ${LIBRARIES})
 
 ################################################################################
 enable_testing()
-add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-key.cpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-key.cpp ${CMAKE_BINARY_DIR}/db.hpp)
 target_link_libraries(key-runner ${LIBRARIES})
 add_test(NAME key-runner COMMAND key-runner)
 
-add_executable(rec2cabinet-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-rec2cabinet.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${CMAKE_BINARY_DIR}/db.hpp ${lmdb-sources} ${xxhash-sources})
+add_executable(rec2cabinet-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-rec2cabinet.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${CMAKE_BINARY_DIR}/db.hpp)
 target_link_libraries(rec2cabinet-runner ${LIBRARIES})
 add_test(NAME rec2cabinet-runner COMMAND rec2cabinet-runner)
 
