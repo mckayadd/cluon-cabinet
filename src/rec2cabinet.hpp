@@ -56,16 +56,15 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
     return 1;
   }
 
-  {
+  auto printNumberOfEntries = [argv0=ARGV0, CABINET, &env, checkErrorCode]() {
     MDB_txn *txn{nullptr};
     MDB_dbi dbi{0};
     if (!checkErrorCode(mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn), __LINE__, "mdb_txn_begin")) {
       mdb_env_close(env);
       return 1;
     }
-    retCode = mdb_dbi_open(txn, "all", 0/*no flags*/, &dbi);
-    if (MDB_NOTFOUND  == retCode) {
-      std::clog << "[" << ARGV0 << "]: No table 'all' found in " << CABINET << ", will be created on opening." << std::endl;
+    if (MDB_NOTFOUND  == mdb_dbi_open(txn, "all", 0/*no flags*/, &dbi)) {
+      std::clog << "[" << argv0 << "]: No table 'all' found in " << CABINET << ", will be created on opening." << std::endl;
     }
     else {
       uint64_t numberOfEntries{0};
@@ -73,13 +72,16 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
       if (!mdb_stat(txn, dbi, &stat)) {
         numberOfEntries = stat.ms_entries;
       }
-      std::clog << "[" << ARGV0 << "]: Found " << numberOfEntries << " entries in table 'all' in " << CABINET << std::endl;
+      std::clog << "[" << argv0 << "]: Found " << numberOfEntries << " entries in table 'all' in " << CABINET << std::endl;
     }
     mdb_txn_abort(txn);
     if (dbi) {
       mdb_dbi_close(env, dbi);
     }
-  }
+    return 0;
+  };
+
+  printNumberOfEntries();
 
   // Iterate through .rec file and fill database.
   {
@@ -257,42 +259,15 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
 
       std::clog << "[" << ARGV0 << "]: Processed 100% (" << entries << " entries) from " << REC << "; total bytes read: " << totalBytesRead
                 << " in " << cluon::time::deltaInMicroseconds(AFTER, BEFORE) / static_cast<int64_t>(1000 * 1000) << "s." << std::endl;
-      {
-        MDB_dbi dbAll{0}; 
-        MDB_txn *txn{nullptr};
-
-        // No transaction available, create one.
-        if (nullptr == txn) {
-          if (!checkErrorCode(mdb_txn_begin(env, nullptr, 0, &txn), __LINE__, "mdb_txn_begin")) {
-            mdb_env_close(env);
-            return 1;
-          }
-        }
-
-        // Make sure to have a database "all" and that we have it open.
-        if (!checkErrorCode(mdb_dbi_open(txn, "all", MDB_CREATE, &dbAll), __LINE__, "mdb_dbi_open")) {
-          mdb_txn_abort(txn);
-          mdb_env_close(env);
-          return 1;
-        }
-        mdb_set_compare(txn, dbAll, &compareKeys);
-
-        uint64_t numberOfEntries{0};
-        MDB_stat stat;
-        if (!mdb_stat(txn, dbAll, &stat)) {
-          numberOfEntries = stat.ms_entries;
-        }
-        std::clog << "[" << ARGV0 << "]: Found " << numberOfEntries << " entries in database 'all' in " << CABINET << std::endl;
-
-        mdb_txn_abort(txn);
-        mdb_dbi_close(env, dbAll);
-      }
     }
     else {
       std::clog << "[" << ARGV0 << "]: " << REC << " could not be opened." << std::endl;
     }
     mdb_env_sync(env, true);
   }
+
+  printNumberOfEntries();
+
   if (env) {
     mdb_env_close(env);
   }
