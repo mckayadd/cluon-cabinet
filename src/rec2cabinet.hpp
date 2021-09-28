@@ -83,29 +83,22 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
 
   // Iterate through .rec file and fill database.
   {
-    std::map<std::string, MDB_dbi> mapOfDatabases{};
-    MDB_txn *txn{nullptr};
-
-    uint32_t entries{0};
-    uint64_t totalBytesWritten = 0;
-
     std::fstream recFile;
     recFile.open(REC.c_str(), std::ios_base::in | std::ios_base::binary);
 
     if (recFile.good()) {
+      uint32_t entries{0};
+      uint64_t totalBytesRead = 0;
+
       // Determine file size to display progress.
       recFile.seekg(0, recFile.end);
       int64_t fileLength = recFile.tellg();
-      uint64_t totalBytesRead = 0;
       recFile.seekg(0, recFile.beg);
 
       // Read complete file and store file positions to Envelopes to create
       // index of available data. The actual reading of Envelopes is deferred.
       const cluon::data::TimeStamp BEFORE{cluon::time::now()};
       {
-        const uint64_t MAX_BYTES_TO_WRITE{10*1024*1024};
-        uint64_t bytesWritten = 0;
-
         int32_t oldPercentage{-1};
         while (recFile.good()) {
           const uint64_t POS_BEFORE = static_cast<uint64_t>(recFile.tellg());
@@ -116,33 +109,14 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             entries++;
             totalBytesRead += (POS_AFTER - POS_BEFORE);
 
-            // Commit write.
-            if (bytesWritten > MAX_BYTES_TO_WRITE) {
-              bytesWritten = 0;
-              if (MDB_SUCCESS != (retCode = mdb_txn_commit(txn))) {
-                std::cerr << ARGV0 << ": " << "mdb_txn_commit: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;
-                mdb_env_close(env);
-                break;
-              }
-              txn = nullptr;
-              for (auto it : mapOfDatabases) {
-                mdb_dbi_close(env, it.second);
-              }
-              mapOfDatabases.clear(); 
-            }
-
             cluon::data::Envelope e{std::move(retVal.second)};
             auto sampleTimeStamp{cluon::time::toMicroseconds(e.sampleTimeStamp())};
-
             // Create bytes to store in "all".
             const std::string sVal{cluon::serializeEnvelope(std::move(e))};
-            MDB_val value;
-            value.mv_size = sVal.size();
-            value.mv_data = const_cast<char*>(sVal.c_str());
 
-            XXH64_hash_t hash = XXH64(value.mv_data, value.mv_size, 0);
+            XXH64_hash_t hash = XXH64(sVal.c_str(), sVal.size(), 0);
             if (VERBOSE) {
-              std::clog << "hash: " << std::hex << "0x" << hash << std::dec << ", value size = " << value.mv_size << std::endl;
+              std::clog << "hash: " << std::hex << "0x" << hash << std::dec << ", value size = " << sVal.size() << std::endl;
             }
 /*
             // Compress value using zstd.
@@ -164,8 +138,8 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             std::vector<char> _key;
             _key.reserve(MAXKEYSIZE);
             
-            bytesWritten += value.mv_size + sizeof(_key);
-            totalBytesWritten += value.mv_size + sizeof(_key);
+            MDB_dbi dbAll{0}; 
+            MDB_txn *txn{nullptr};
 
             // No transaction available, create one.
             if (nullptr == txn) {
@@ -176,16 +150,12 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             }
 
             // Make sure to have a database "all" and that we have it open.
-            if (mapOfDatabases.count("all") == 0) {
-              MDB_dbi dbi;
-              if (!checkErrorCode(mdb_dbi_open(txn, "all", MDB_CREATE, &dbi), __LINE__, "mdb_dbi_open")) {
-                mdb_txn_abort(txn);
-                mdb_env_close(env);
-                break;
-              }
-              mapOfDatabases["all"] = dbi;
-              mdb_set_compare(txn, mapOfDatabases["all"], &compareKeys);
+            if (!checkErrorCode(mdb_dbi_open(txn, "all", MDB_CREATE, &dbAll), __LINE__, "mdb_dbi_open")) {
+              mdb_txn_abort(txn);
+              mdb_env_close(env);
+              break;
             }
+            mdb_set_compare(txn, dbAll, &compareKeys);
 #if 0
               {
                 // version 0:
@@ -214,16 +184,16 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
               .senderStamp(e.senderStamp())
               .hash(hash)
               .version(0)
-              .length(value.mv_size);
+              .length(sVal.size());
 
             MDB_val key;
+            MDB_val value;
             int64_t sampleTimeStampOffsetToAvoidCollision{0};
             do {
               k.timeStamp(sampleTimeStamp * 1000UL + sampleTimeStampOffsetToAvoidCollision);
               key.mv_size = setKey(k, _key.data(), _key.capacity());
               key.mv_data = _key.data();
 
-              // Somehow, the previous value pointed to by MDB_val.value got lost.
               value.mv_size = sVal.size();
               value.mv_data = const_cast<char*>(sVal.c_str());
 
@@ -231,7 +201,7 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
               {
                 bool duplicate{false};
                 MDB_cursor *cursor{nullptr};
-                if (MDB_SUCCESS == mdb_cursor_open(txn, mapOfDatabases["all"], &cursor)) {
+                if (MDB_SUCCESS == mdb_cursor_open(txn, dbAll, &cursor)) {
                   // Check if the key exists; if so, retrieve the key and check hash to skip duplicated data.
                   MDB_val tmpKey = key;
                   MDB_val tmpVal;
@@ -255,7 +225,7 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
              
               // Try next slot if already taken.
               sampleTimeStampOffsetToAvoidCollision++;
-            } while ( MDB_KEYEXIST == (retCode = mdb_put(txn, mapOfDatabases["all"], &key, &value, MDB_NOOVERWRITE)) );
+            } while ( MDB_KEYEXIST == (retCode = mdb_put(txn, dbAll, &key, &value, MDB_NOOVERWRITE)) );
             if (0 != retCode) {
               std::cerr << ARGV0 << ": " << "mdb_put: (" << retCode << ") " << mdb_strerror(retCode) << ", stored " << entries << std::endl;
               mdb_txn_abort(txn);
@@ -263,9 +233,21 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
               break;
             }
 
+            // Commit write.
+            {
+              if (MDB_SUCCESS != (retCode = mdb_txn_commit(txn))) {
+                std::cerr << ARGV0 << ": " << "mdb_txn_commit: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;
+                mdb_env_close(env);
+                break;
+              }
+              txn = nullptr;
+              mdb_dbi_close(env, dbAll);
+              dbAll = -1;
+            }
+
             const int32_t percentage = static_cast<int32_t>((static_cast<float>(recFile.tellg()) * 100.0f) / static_cast<float>(fileLength));
             if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
-              std::clog << "[" << ARGV0 << "]: Processed " << percentage << "% (" << entries << " entries) from " << REC << "; total bytes added: " << totalBytesWritten << std::endl;
+              std::clog << "[" << ARGV0 << "]: Processed " << percentage << "% (" << entries << " entries) from " << REC << std::endl;
               oldPercentage = percentage;
             }
           }
@@ -273,29 +255,42 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
       }
       const cluon::data::TimeStamp AFTER{cluon::time::now()};
 
-      std::clog << "[" << ARGV0 << "]: Processed 100% (" << entries << " entries) from " << REC << "; total bytes read: " << totalBytesRead << "; total bytes added: " << totalBytesWritten
+      std::clog << "[" << ARGV0 << "]: Processed 100% (" << entries << " entries) from " << REC << "; total bytes read: " << totalBytesRead
                 << " in " << cluon::time::deltaInMicroseconds(AFTER, BEFORE) / static_cast<int64_t>(1000 * 1000) << "s." << std::endl;
       {
+        MDB_dbi dbAll{0}; 
+        MDB_txn *txn{nullptr};
+
+        // No transaction available, create one.
+        if (nullptr == txn) {
+          if (!checkErrorCode(mdb_txn_begin(env, nullptr, 0, &txn), __LINE__, "mdb_txn_begin")) {
+            mdb_env_close(env);
+            return 1;
+          }
+        }
+
+        // Make sure to have a database "all" and that we have it open.
+        if (!checkErrorCode(mdb_dbi_open(txn, "all", MDB_CREATE, &dbAll), __LINE__, "mdb_dbi_open")) {
+          mdb_txn_abort(txn);
+          mdb_env_close(env);
+          return 1;
+        }
+        mdb_set_compare(txn, dbAll, &compareKeys);
+
         uint64_t numberOfEntries{0};
         MDB_stat stat;
-        if (!mdb_stat(txn, mapOfDatabases["all"], &stat)) {
+        if (!mdb_stat(txn, dbAll, &stat)) {
           numberOfEntries = stat.ms_entries;
         }
         std::clog << "[" << ARGV0 << "]: Found " << numberOfEntries << " entries in database 'all' in " << CABINET << std::endl;
+
+        mdb_txn_abort(txn);
+        mdb_dbi_close(env, dbAll);
       }
     }
     else {
       std::clog << "[" << ARGV0 << "]: " << REC << " could not be opened." << std::endl;
     }
-
-    if ((nullptr != txn) && (MDB_SUCCESS != (retCode = mdb_txn_commit(txn)))) {
-      std::cerr << ARGV0 << ": " << "mdb_txn_commit: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;
-      mdb_env_close(env);
-    }
-    for (auto it : mapOfDatabases) {
-      mdb_dbi_close(env, it.second);
-    }
-    mapOfDatabases.clear(); 
     mdb_env_sync(env, true);
   }
   if (env) {
