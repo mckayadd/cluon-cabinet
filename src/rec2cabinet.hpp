@@ -212,8 +212,7 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             k.dataType(e.dataType())
               .senderStamp(e.senderStamp())
               .hash(hash)
-              .version(0)
-              .length(sVal.size());
+              .version(0);
 
             MDB_val key;
             MDB_val value;

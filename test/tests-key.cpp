@@ -25,8 +25,7 @@ TEST_CASE("Test writing key") {
 	 .dataType(4321)
 	 .senderStamp(223344)
 	 .hash(987654321)
-	 .version(0)
-	 .length(531);
+	 .version(0);
 
   const size_t len = setKey(k, tmp.data(), tmp.capacity());
   REQUIRE(25 == len);
@@ -56,7 +55,6 @@ TEST_CASE("Test reading key") {
   REQUIRE(0 == k.senderStamp());
   REQUIRE(0 == k.hash());
   REQUIRE(0 == k.version());
-  REQUIRE(0 == k.length());
 
   k = getKey(tmp.data(), tmp.capacity());
   REQUIRE(12345 == k.timeStamp());
@@ -64,5 +62,4 @@ TEST_CASE("Test reading key") {
   REQUIRE(223344 == k.senderStamp());
   REQUIRE(987654321 == k.hash());
   REQUIRE(0 == k.version());
-  REQUIRE(0 == k.length());
 }
