@@ -90,16 +90,15 @@ inline int cabinet2rec(const std::string &ARGV0, const std::string &CABINET, con
           const char *ptr = static_cast<char*>(key.mv_data);
           cabinet::Key storedKey = getKey(ptr, key.mv_size);
 
-          if (VERBOSE) {
-            XXH64_hash_t hash = XXH64(val.mv_data, val.mv_size, 0);
-            std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from value: " << std::hex << "0x" << hash << std::dec << std::endl;
-          }
-
           // Decompress value and write to file.
           {
             std::vector<char> decompressedValue;
             decompressedValue.reserve(storedKey.length());
             const int decompressedSize = LZ4_decompress_safe(static_cast<char*>(val.mv_data), decompressedValue.data(), val.mv_size, decompressedValue.capacity());
+            if (VERBOSE) {
+              XXH64_hash_t hashDecompressed = XXH64(decompressedValue.data(), decompressedSize, 0);
+              std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from original value: 0x" << std::hex << storedKey.hash() << std::dec << ", hash from decompressed value: " << std::hex << "0x" << hashDecompressed << std::dec << ", match = " << (storedKey.hash() == hashDecompressed) << std::endl;
+            }
             recFile.write(decompressedValue.data(), decompressedSize);
           }
 
