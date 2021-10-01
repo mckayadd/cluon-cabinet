@@ -124,28 +124,27 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             }
 
             // Compress value via lz4.
+            std::vector<char> compressValue;
+            ssize_t compressedSize{0};
             {
               ssize_t expectedCompressedSize = LZ4_compressBound(sVal.size());
-              if (VERBOSE) {
-                std::clog << "lz4 expected size: " << expectedCompressedSize << std::endl;
-              }
-              std::vector<char> compressedData;
-              compressedData.reserve(expectedCompressedSize);
-              //const ssize_t compressedSize = LZ4_compress_default(sVal.c_str(), compressedData.data(), sVal.size(), compressedData.capacity());
-              const ssize_t compressedSize = LZ4_compress_HC(sVal.c_str(), compressedData.data(), sVal.size(), compressedData.capacity(), LZ4HC_CLEVEL_MAX);
+              compressValue.reserve(expectedCompressedSize);
+              //const ssize_t compressedSize = LZ4_compress_default(sVal.c_str(), compressValue.data(), sVal.size(), compressValue.capacity());
+              compressedSize = LZ4_compress_HC(sVal.c_str(), compressValue.data(), sVal.size(), compressValue.capacity(), LZ4HC_CLEVEL_MAX);
               if (VERBOSE) {
                 std::clog << "lz4 actual size: " << compressedSize << std::endl;
               }
-
+#if 0
               {
-                std::vector<char> decompressedData;
-                decompressedData.reserve(sVal.size());
-                const int decompressedSize = LZ4_decompress_safe(compressedData.data(), decompressedData.data(), compressedSize, decompressedData.capacity());
-                XXH64_hash_t hashDecompressed = XXH64(decompressedData.data(), decompressedSize, 0);
+                std::vector<char> decompressValue;
+                decompressValue.reserve(sVal.size());
+                const int decompressedSize = LZ4_decompress_safe(compressValue.data(), decompressValue.data(), compressedSize, decompressValue.capacity());
+                XXH64_hash_t hashDecompressed = XXH64(decompressValue.data(), decompressedSize, 0);
                 if (VERBOSE) {
                   std::clog << "lz4 decompressed size: " << decompressedSize << ", org hash: " << std::hex << "0x" << hash << ", dec hash: " << "0x" << hashDecompressed << std::dec << std::endl << std::endl;
                 }
               }
+#endif
             }
 /*
             // Compress value using zstd.
@@ -212,7 +211,8 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             k.dataType(e.dataType())
               .senderStamp(e.senderStamp())
               .hash(hash)
-              .version(0);
+              .version(0)
+              .length(sVal.size());
 
             MDB_val key;
             MDB_val value;
@@ -223,8 +223,8 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
               key.mv_size = setKey(k, _key.data(), _key.capacity());
               key.mv_data = _key.data();
 
-              value.mv_size = sVal.size();
-              value.mv_data = const_cast<char*>(sVal.c_str());
+              value.mv_size = compressedSize;
+              value.mv_data = compressValue.data();
 
               // Check for duplicated entries.
               {

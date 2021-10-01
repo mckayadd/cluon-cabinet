@@ -51,18 +51,20 @@ inline size_t setKey(cabinet::Key k, char *dest, const size_t &len) noexcept {
   // b12-b15: uint32_t for senderStamp
   // b16-b23: uint64_t for xxhash
   // b24: uint8_t for version
+  // b25-b26: uint16_t for version
   const size_t MIN_LEN{sizeof(decltype(k.timeStamp()))
                       +sizeof(decltype(k.dataType()))
                       +sizeof(decltype(k.senderStamp()))
                       +sizeof(decltype(k.hash()))
-                      +sizeof(decltype(k.version()))};
+                      +sizeof(decltype(k.version()))
+                      +sizeof(decltype(k.length()))};
   if ( (nullptr != dest) && (MIN_LEN <= len) ) {
     uint16_t offset{0};
     // "visiting" message data structure that describes a key
     k.accept([](uint32_t, const std::string &, const std::string &) {},
              [dest, &offset](uint32_t field, std::string &&, std::string &&, auto v) {
-              // only dump the first 5 fields.
-              if (5 >= field) {
+              // only dump the first 6 fields.
+              if (6 >= field) {
                 // convert values to network byte order.
                 decltype(v) hton{v};
                 if (2 == sizeof(v)) { hton = htobe16(v); }
@@ -93,14 +95,15 @@ inline cabinet::Key getKey(const char *src, const size_t &len) noexcept {
                       +sizeof(decltype(k.dataType()))
                       +sizeof(decltype(k.senderStamp()))
                       +sizeof(decltype(k.hash()))
-                      +sizeof(decltype(k.version()))};
+                      +sizeof(decltype(k.version()))
+                      +sizeof(decltype(k.length()))};
   if ( (nullptr != src) && (MIN_LEN <= len) ) {
     uint16_t offset{0};
     // "visiting" message data structure to read a key
     k.accept([](uint32_t, const std::string &, const std::string &) {},
              [src, &offset](uint32_t field, std::string &&, std::string &&, auto &v) {
-              // only extract the first 5 fields.
-              if (5 >= field) {
+              // only extract the first 6 fields.
+              if (6 >= field) {
                 decltype(v) ntoh{v};
 
                 // read values as specified in .odvd file

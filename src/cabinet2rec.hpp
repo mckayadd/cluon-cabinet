@@ -13,6 +13,8 @@
 #include "db.hpp"
 #include "key.hpp"
 #include "lmdb.h"
+#include "lz4.h"
+#include "lz4hc.h"
 #include "xxhash.h"
 
 #include <cstdio>
@@ -85,15 +87,22 @@ inline int cabinet2rec(const std::string &ARGV0, const std::string &CABINET, con
         MDB_val val;
 
         while ((retCode = mdb_cursor_get(cursor, &key, &val, MDB_NEXT_NODUP)) == 0) {
-          if (VERBOSE) {
-            const char *ptr = static_cast<char*>(key.mv_data);
-            cabinet::Key storedKey = getKey(ptr, key.mv_size);
+          const char *ptr = static_cast<char*>(key.mv_data);
+          cabinet::Key storedKey = getKey(ptr, key.mv_size);
 
+          if (VERBOSE) {
             XXH64_hash_t hash = XXH64(val.mv_data, val.mv_size, 0);
             std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from value: " << std::hex << "0x" << hash << std::dec << std::endl;
           }
 
-          recFile.write(static_cast<char*>(val.mv_data), val.mv_size);
+          // Decompress value and write to file.
+          {
+            std::vector<char> decompressedValue;
+            decompressedValue.reserve(storedKey.length());
+            const int decompressedSize = LZ4_decompress_safe(static_cast<char*>(val.mv_data), decompressedValue.data(), val.mv_size, decompressedValue.capacity());
+            recFile.write(decompressedValue.data(), decompressedSize);
+          }
+
           entries++;
 #if 0
           char *ptr = static_cast<char*>(key.mv_data);
