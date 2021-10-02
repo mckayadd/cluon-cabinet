@@ -97,7 +97,7 @@ inline int cabinet2rec(const std::string &ARGV0, const std::string &CABINET, con
             const int decompressedSize = LZ4_decompress_safe(static_cast<char*>(val.mv_data), decompressedValue.data(), val.mv_size, decompressedValue.capacity());
             if (VERBOSE) {
               XXH64_hash_t hashDecompressed = XXH64(decompressedValue.data(), decompressedSize, 0);
-              std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from original value: 0x" << std::hex << storedKey.hash() << std::dec << ", hash from decompressed value: " << std::hex << "0x" << hashDecompressed << std::dec << ", match = " << (storedKey.hash() == hashDecompressed) << std::endl;
+              std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from original value: 0x" << std::hex << storedKey.hash() << std::dec << ", hash from decompressed value: " << std::hex << "0x" << hashDecompressed << std::dec << ", match = " << (storedKey.hash() == hashDecompressed) << ", vs = " << val.mv_size << ", ds = " << decompressedSize << std::endl;
             }
             recFile.write(decompressedValue.data(), decompressedSize);
           }
