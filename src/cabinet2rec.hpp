@@ -87,29 +87,24 @@ inline int cabinet2rec(const std::string &ARGV0, const std::string &CABINET, con
         MDB_val val;
 
         while ((retCode = mdb_cursor_get(cursor, &key, &val, MDB_NEXT_NODUP)) == 0) {
-//          const char *ptr = static_cast<char*>(key.mv_data);
-//          cabinet::Key storedKey = getKey(ptr, key.mv_size);
+          const char *ptr = static_cast<char*>(key.mv_data);
+          cabinet::Key storedKey = getKey(ptr, key.mv_size);
 
-          recFile.write(static_cast<char*>(val.mv_data), val.mv_size);
-#if 0
-          // Decompress value and write to file.
-          {
+          // If the size of the stored value is smaller than the original one, it has been compressed
+          if (storedKey.length() > val.mv_size) {
             std::vector<char> decompressedValue;
-            decompressedValue.reserve(2*storedKey.length());
+            decompressedValue.reserve(storedKey.length());
             const ssize_t decompressedSize = LZ4_decompress_safe(static_cast<char*>(val.mv_data), decompressedValue.data(), val.mv_size, decompressedValue.capacity());
             if (VERBOSE) {
-              {
-                XXH64_hash_t hashDecompressed = XXH64(decompressedValue.data(), decompressedSize, 0);
-                std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from original value: 0x" << std::hex << storedKey.hash() << std::dec << ", hash from decompressed value: " << std::hex << "0x" << hashDecompressed << std::dec << ", match = " << (storedKey.hash() == hashDecompressed) << ", vs = " << val.mv_size << ", ds = " << decompressedSize << std::endl;
-              }
-              {
-                XXH64_hash_t hashDecompressed = XXH64(decompressedValue.data(), storedKey.length(), 0);
-                std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from original value: 0x" << std::hex << storedKey.hash() << std::dec << ", hash from decompressed value: " << std::hex << "0x" << hashDecompressed << std::dec << ", match = " << (storedKey.hash() == hashDecompressed) << ", vs = " << val.mv_size << ", ds = " << decompressedSize << std::endl;
-              }
+              XXH64_hash_t hashDecompressed = XXH64(decompressedValue.data(), decompressedSize, 0);
+              std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from original value: 0x" << std::hex << storedKey.hash() << std::dec << ", hash from decompressed value: " << std::hex << "0x" << hashDecompressed << std::dec << ", match = " << (storedKey.hash() == hashDecompressed) << ", vs = " << val.mv_size << ", ds = " << decompressedSize << std::endl;
             }
             recFile.write(decompressedValue.data(), storedKey.length());
           }
-#endif
+          else {
+            // Stored value is uncompressed.
+            recFile.write(static_cast<char*>(val.mv_data), val.mv_size);
+          }
           entries++;
 #if 0
           char *ptr = static_cast<char*>(key.mv_data);

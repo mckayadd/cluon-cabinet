@@ -116,35 +116,42 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             cluon::data::Envelope e{std::move(retVal.second)};
             auto sampleTimeStamp{cluon::time::toMicroseconds(e.sampleTimeStamp())};
             // Create bytes to store in "all".
-            const std::string sVal{cluon::serializeEnvelope(std::move(e))};
+            std::string sVal{cluon::serializeEnvelope(std::move(e))};
+            char *ptrToValue = const_cast<char*>(sVal.data());
+            ssize_t lengthOfValue = sVal.size();
 
-            XXH64_hash_t hash = XXH64(sVal.c_str(), sVal.size(), 0);
+            XXH64_hash_t hash = XXH64(sVal.data(), sVal.size(), 0);
             if (VERBOSE) {
               std::clog << "hash: " << std::hex << "0x" << hash << std::dec << ", value size = " << sVal.size() << std::endl;
             }
-#if 0
             // Compress value via lz4.
-            std::vector<char> compressValue;
+            std::vector<char> compressedValue;
             ssize_t compressedSize{0};
             {
               ssize_t expectedCompressedSize = LZ4_compressBound(sVal.size());
-              compressValue.reserve(expectedCompressedSize);
-              //compressedSize = LZ4_compress_default(sVal.c_str(), compressValue.data(), sVal.size(), compressValue.capacity());
-              compressedSize = LZ4_compress_HC(sVal.c_str(), compressValue.data(), sVal.size(), compressValue.capacity(), LZ4HC_CLEVEL_MAX);
+              compressedValue.reserve(expectedCompressedSize);
+              //compressedSize = LZ4_compress_default(sVal.data(), compressedValue.data(), sVal.size(), compressedValue.capacity());
+              compressedSize = LZ4_compress_HC(sVal.data(), compressedValue.data(), sVal.size(), compressedValue.capacity(), LZ4HC_CLEVEL_MAX);
               if (VERBOSE) {
                 std::clog << "lz4 actual size: " << compressedSize << std::endl;
               }
+              if ( (compressedSize > 0) && (compressedSize < lengthOfValue) ) {
+                ptrToValue = compressedValue.data();
+                lengthOfValue = compressedSize;
+              }
+
+#if 0
               {
-                std::vector<char> decompressValue;
-                decompressValue.reserve(sVal.size());
-                const int decompressedSize = LZ4_decompress_safe(compressValue.data(), decompressValue.data(), compressedSize, decompressValue.capacity());
-                XXH64_hash_t hashDecompressed = XXH64(decompressValue.data(), decompressedSize, 0);
+                std::vector<char> decompressedValue;
+                decompressedValue.reserve(sVal.size());
+                const int decompressedSize = LZ4_decompress_safe(compressedValue.data(), decompressedValue.data(), compressedSize, decompressedValue.capacity());
+                XXH64_hash_t hashDecompressed = XXH64(decompressedValue.data(), decompressedSize, 0);
                 if (VERBOSE) {
                   std::clog << "lz4 decompressed size: " << decompressedSize << ", org hash: " << std::hex << "0x" << hash << ", dec hash: " << "0x" << hashDecompressed << std::dec << std::endl << std::endl;
                 }
               }
-            }
 #endif
+            }
 /*
             // Compress value using zstd.
             std::string compressedValue{};
@@ -159,7 +166,7 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
               compressedValue.shrink_to_fit();
 
               value.mv_size = compressedValue.size();
-              value.mv_data = const_cast<char*>(compressedValue.c_str());
+              value.mv_data = const_cast<char*>(compressedValue.data());
             }
 */
             std::vector<char> _key;
@@ -223,9 +230,9 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
               key.mv_data = _key.data();
 
               //value.mv_size = compressedSize;
-              //value.mv_data = compressValue.data();
-              value.mv_size = sVal.size();
-              value.mv_data = const_cast<char*>(sVal.c_str());
+              //value.mv_data = compressedValue.data();
+              value.mv_size = lengthOfValue;
+              value.mv_data = ptrToValue;
 
               // Check for duplicated entries.
               {
