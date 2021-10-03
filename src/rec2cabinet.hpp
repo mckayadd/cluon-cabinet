@@ -91,6 +91,7 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
     recFile.open(REC.c_str(), std::ios_base::in | std::ios_base::binary);
 
     if (recFile.good()) {
+      const XXH32_hash_t hashOfFilename = XXH32(REC.c_str(), REC.size(), 0);
       uint32_t entries{0};
       uint64_t totalBytesRead = 0;
 
@@ -217,8 +218,9 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
             k.dataType(e.dataType())
               .senderStamp(e.senderStamp())
               .hash(hash)
-              .version(0)
-              .length(sVal.size());
+              .hashOfRecFile(hashOfFilename)
+              .length(sVal.size())
+              .version(0);
 
             MDB_val key;
             MDB_val value;
@@ -229,8 +231,6 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
               key.mv_size = setKey(k, _key.data(), _key.capacity());
               key.mv_data = _key.data();
 
-              //value.mv_size = compressedSize;
-              //value.mv_data = compressedValue.data();
               value.mv_size = lengthOfValue;
               value.mv_data = ptrToValue;
 
