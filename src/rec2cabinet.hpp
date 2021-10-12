@@ -282,6 +282,51 @@ inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const s
               dbAll = -1;
             }
 
+            // Add key to separate database named "dataType/senderStamp".
+            {
+              MDB_txn *_txn{nullptr};
+              if (nullptr == _txn) {
+                if (!checkErrorCode(mdb_txn_begin(env, nullptr, 0, &_txn), __LINE__, "mdb_txn_begin")) {
+                  mdb_env_close(env);
+                  return 1;
+                }
+              }
+
+              std::stringstream _dataType_senderStamp;
+              _dataType_senderStamp << e.dataType() << '/'<< e.senderStamp();
+              const std::string _shortKey{_dataType_senderStamp.str()};
+
+              // Make sure to have a database "all" and that we have it open.
+              MDB_dbi dbDataTypeSenderStamp{0}; 
+              if (!checkErrorCode(mdb_dbi_open(_txn, _shortKey.c_str(), MDB_CREATE, &dbDataTypeSenderStamp), __LINE__, "mdb_dbi_open")) {
+                mdb_txn_abort(_txn);
+                mdb_env_close(env);
+                break;
+              }
+              mdb_set_compare(_txn, dbDataTypeSenderStamp, &compareKeys);
+
+              key.mv_size = setKey(k, _key.data(), _key.capacity());
+              key.mv_data = _key.data();
+
+              value.mv_size = 0;
+              value.mv_data = nullptr;
+
+              if (MDB_SUCCESS != (retCode = mdb_put(_txn, dbDataTypeSenderStamp, &key, &value, 0))) {
+                std::cerr << ARGV0 << ": " << "mdbx_put: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;
+              }
+
+              // Commit write.
+              {
+                if (MDB_SUCCESS != (retCode = mdb_txn_commit(_txn))) {
+                  std::cerr << ARGV0 << ": " << "mdb_txn_commit: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;
+                  mdb_env_close(env);
+                  break;
+                }
+                _txn = nullptr;
+                mdb_dbi_close(env, dbDataTypeSenderStamp);
+              }
+            }
+
             const int32_t percentage = static_cast<int32_t>((static_cast<float>(recFile.tellg()) * 100.0f) / static_cast<float>(fileLength));
             if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
               std::clog << "[" << ARGV0 << "]: Processed " << percentage << "% (" << entries << " entries) from " << REC << std::endl;
