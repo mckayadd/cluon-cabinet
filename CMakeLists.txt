@@ -194,6 +194,10 @@ add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAK
 target_link_libraries(key-runner ${LIBRARIES})
 add_test(NAME key-runner COMMAND key-runner)
 
+add_executable(morton-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-morton.cpp ${GENERATED_HEADERS})
+target_link_libraries(morton-runner ${LIBRARIES})
+add_test(NAME morton-runner COMMAND morton-runner)
+
 add_executable(rec2cabinet-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-rec2cabinet.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${GENERATED_HEADERS})
 target_link_libraries(rec2cabinet-runner ${LIBRARIES})
 add_test(NAME rec2cabinet-runner COMMAND rec2cabinet-runner)

@@ -12,6 +12,7 @@
 #include "cluon-complete.hpp"
 #include "key.hpp"
 #include "db.hpp"
+#include "opendlv-standard-message-set.hpp"
 #include "lmdb.h"
 #include "lz4.h"
 #include "lz4hc.h"
