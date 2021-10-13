@@ -14,6 +14,7 @@ project(cluon-cabinet)
 # Defining the relevant version of libcluon.
 set(CLUON_COMPLETE cluon-complete-v0.0.140.hpp)
 set(DB_MESSAGE_SET db.odvd)
+set(OPENDLV_MESSAGE_SET opendlv-standard-message-set-v0.9.9.odvd)
 
 ################################################################################
 # Set the search path for .cmake files.
@@ -148,6 +149,13 @@ ELSE()
 ENDIF()
 
 ################################################################################
+# Generate opendlv-standard-message-set.hpp
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/opendlv-standard-message-set.hpp
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMAND ${CMAKE_BINARY_DIR}/cluon-msc --cpp --out=${CMAKE_BINARY_DIR}/opendlv-standard-message-set.hpp ${CMAKE_CURRENT_SOURCE_DIR}/src/${OPENDLV_MESSAGE_SET}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${OPENDLV_MESSAGE_SET} ${CMAKE_BINARY_DIR}/cluon-msc)
+
+################################################################################
 # Generate db.hpp.
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/db.hpp
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -163,26 +171,30 @@ set(LIBRARIES ${LIBRARIES} cluon-cabinet-3rdparties-static)
 
 ################################################################################
 # Create executables.
+set(GENERATED_HEADERS ${HEADERS} ${CMAKE_BINARY_DIR}/opendlv-standard-message-set.hpp ${CMAKE_BINARY_DIR}/db.hpp)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp)
+add_executable(rec2cabinet ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(rec2cabinet ${LIBRARIES})
 
-add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp)
+add_executable(cabinet2rec ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet2rec.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet2rec ${LIBRARIES})
 
-add_executable(cabinet-stream ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-stream.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp)
+add_executable(cabinet-stream ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-stream.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-stream ${LIBRARIES})
 
-add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${CMAKE_BINARY_DIR}/db.hpp)
+add_executable(cabinet-ls ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-ls.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-ls ${LIBRARIES})
+
+add_executable(cabinet-overview ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-overview.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
+target_link_libraries(cabinet-overview ${LIBRARIES})
 
 ################################################################################
 enable_testing()
-add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-key.cpp ${CMAKE_BINARY_DIR}/db.hpp)
+add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-key.cpp ${GENERATED_HEADERS})
 target_link_libraries(key-runner ${LIBRARIES})
 add_test(NAME key-runner COMMAND key-runner)
 
-add_executable(rec2cabinet-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-rec2cabinet.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${CMAKE_BINARY_DIR}/db.hpp)
+add_executable(rec2cabinet-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-rec2cabinet.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/rec2cabinet.hpp ${GENERATED_HEADERS})
 target_link_libraries(rec2cabinet-runner ${LIBRARIES})
 add_test(NAME rec2cabinet-runner COMMAND rec2cabinet-runner)
 
@@ -191,3 +203,4 @@ install(TARGETS rec2cabinet DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet2rec DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-stream DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-ls DESTINATION bin COMPONENT ${PROJECT_NAME})
+install(TARGETS cabinet-overview DESTINATION bin COMPONENT ${PROJECT_NAME})
