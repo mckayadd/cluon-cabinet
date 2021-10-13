@@ -93,10 +93,15 @@ int32_t main(int32_t argc, char **argv) {
         uint64_t numberOfEntries{0};
         std::clog.imbue(std::locale(std::cout.getloc(), new space_out));
         MDB_stat stat;
-        if (!mdb_stat(txn, dbi, &stat)) {
-          numberOfEntries = stat.ms_entries;
+        {
+          MDB_dbi dbAll{0};
+          retCode = mdb_dbi_open(txn, "all", 0 , &dbAll);
+          if (!mdb_stat(txn, dbAll, &stat)) {
+            numberOfEntries = stat.ms_entries;
+          }
+          std::clog << "[" << argv[0] << "]: 'all': " << numberOfEntries << " entries" << std::endl;
+          mdb_close(env, dbAll);
         }
-        std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database 'all' in " << CAB << std::endl;
 
         MDB_cursor *cursor;
         if (!(retCode = mdb_cursor_open(txn, dbi, &cursor))) {
@@ -131,7 +136,7 @@ int32_t main(int32_t argc, char **argv) {
                   cluon::MetaMessage m = scope[std::stoi(dataTypeName)];
                   name = m.messageName();
                 }
-                std::clog << "Found '" << name << "' (" << dataTypeName << "/" << senderStamp << ") with " << mst.ms_entries << " entries." << std::endl;
+                std::clog << "[" << argv[0] << "]: " << dataTypeName << "/" << senderStamp << " ('" << name << "'): " << mst.ms_entries << " entries" << std::endl;
               }
             }
             mdb_close(env, db2);
