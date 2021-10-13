@@ -21,18 +21,18 @@ struct space_out : std::numpunct<char> {
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
-  if (0 == commandlineArguments.count("cabinet")) {
+  if (0 == commandlineArguments.count("cab")) {
     std::cerr << argv[0] << " exports all entries from the 'all' table of a cabinet (an lmdb-based key/value-database) as Envelopes to a .rec-file." << std::endl;
-    std::cerr << "Usage:   " << argv[0] << " --cabinet=myStore.cabinet" << std::endl;
-    std::cerr << "         --cabinet: name of the database file" << std::endl;
-    std::cerr << "         --rec:     name of the rec file (optional; otherwise, a new file based on the .cabinet file with .rec as suffix is created)" << std::endl;
+    std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab" << std::endl;
+    std::cerr << "         --cab:     name of the database file" << std::endl;
+    std::cerr << "         --rec:     name of the rec file (optional; otherwise, a new file based on the .cab file with .rec as suffix is created)" << std::endl;
     std::cerr << "         --verbose: display information" << std::endl;
-    std::cerr << "Example: " << argv[0] << " --cabinet=myStore.cabinet --rec=myRecFile.rec" << std::endl;
+    std::cerr << "Example: " << argv[0] << " --cab=myStore.cab --rec=myRecFile.rec" << std::endl;
     retCode = 1;
   } else {
     std::clog.imbue(std::locale(std::cout.getloc(), new space_out));
 
-    const std::string CABINET{commandlineArguments["cabinet"]};
+    const std::string CABINET{commandlineArguments["cab"]};
     const std::string REC{(commandlineArguments["rec"].size() != 0) ? commandlineArguments["rec"] : "./" + CABINET + ".rec"};
     const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
 

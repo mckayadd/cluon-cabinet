@@ -22,14 +22,14 @@
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
-  if (0 == commandlineArguments.count("cabinet")) {
+  if (0 == commandlineArguments.count("cab")) {
     std::cerr << argv[0] << " lists all entries from the 'all' table of a cabinet (an lmdb-based key/value-database)." << std::endl;
-    std::cerr << "Usage:   " << argv[0] << " --cabinet=myStore.cabinet" << std::endl;
-    std::cerr << "         --cabinet: name of the database file" << std::endl;
-    std::cerr << "Example: " << argv[0] << " --cabinet=myStore.cabinet" << std::endl;
+    std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab" << std::endl;
+    std::cerr << "         --cab: name of the database file" << std::endl;
+    std::cerr << "Example: " << argv[0] << " --cab=myStore.cab" << std::endl;
     retCode = 1;
   } else {
-    const std::string CABINET{commandlineArguments["cabinet"]};
+    const std::string CABINET{commandlineArguments["cab"]};
 
     MDB_env *env{nullptr};
     const int numberOfDatabases{100};

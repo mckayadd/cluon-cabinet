@@ -21,17 +21,17 @@ struct space_out : std::numpunct<char> {
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
-  if (0 == commandlineArguments.count("cabinet")) {
+  if (0 == commandlineArguments.count("cab")) {
     std::cerr << argv[0] << " prints all entries from table 'all' of a cabinet (an lmdb-based key/value-database) as Envelopes to stdout." << std::endl;
-    std::cerr << "Usage:   " << argv[0] << " --cabinet=myStore.cabinet" << std::endl;
-    std::cerr << "         --cabinet: name of the database file" << std::endl;
+    std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab" << std::endl;
+    std::cerr << "         --cab:     name of the database file" << std::endl;
     std::cerr << "         --verbose: display information on stderr" << std::endl;
-    std::cerr << "Example: " << argv[0] << " --cabinet=myStore.cabinet" << std::endl;
+    std::cerr << "Example: " << argv[0] << " --cab=myStore.cab" << std::endl;
     retCode = 1;
   } else {
     std::cerr.imbue(std::locale(std::cout.getloc(), new space_out));
 
-    const std::string CABINET{commandlineArguments["cabinet"]};
+    const std::string CABINET{commandlineArguments["cab"]};
     const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
 
     const std::string ARGV0{argv[0]};
