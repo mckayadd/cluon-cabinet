@@ -9,8 +9,35 @@
 #ifndef MORTON_HPP
 #define MORTON_HPP
 
+#include "cluon-complete.hpp"
+#include "lmdb.h"
 #include <utility>
 #include <cmath>
+
+/**
+ * This function compares two lmdb keys based on computed Morton keys.
+ *
+ * @param a LHS
+ * @param b RHS
+ * @return -1 iff (LHS < RHS)
+ *          0 iff (LHS == RHS)
+ *         +1 iff (LHS > RHS)
+ */
+inline int compareMortonKeys(const MDB_val *a, const MDB_val *b) {
+  if (nullptr == a || nullptr == b) {
+    return 0;
+  }
+  if (a->mv_size < sizeof(uint64_t) || b->mv_size < sizeof(uint64_t)) {
+    return 0;
+  }
+  // b0-b7: uint64_t for Morton key.
+  uint64_t lhs{*(static_cast<uint64_t*>(a->mv_data))};
+  uint64_t rhs{*(static_cast<uint64_t*>(b->mv_data))};
+  lhs = be64toh(lhs);
+  rhs = be64toh(rhs);
+  const uint64_t delta{lhs - rhs};
+  return (delta < 0 ? -1 : (delta > 0 ? 1 : 0));
+};
 
 inline uint64_t mortonEncode(const std::pair<std::uint32_t,std::uint32_t> &xy) {
   uint64_t x = xy.first;

@@ -9,6 +9,7 @@
 #ifndef KEY_HPP
 #define KEY_HPP
 
+#include "cluon-complete.hpp"
 #include "db.hpp"
 #include "lmdb.h"
 

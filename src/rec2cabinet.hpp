@@ -16,6 +16,7 @@
 #include "lmdb.h"
 #include "lz4.h"
 #include "lz4hc.h"
+#include "morton.hpp"
 #include "xxhash.h"
 
 #include <cstdio>
@@ -325,6 +326,64 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
                 }
                 _txn = nullptr;
                 mdb_dbi_close(env, dbDataTypeSenderStamp);
+              }
+            }
+
+            // If WGS84 coordinate, create Morton code.
+            if (e.dataType() == opendlv::proxy::GeodeticWgs84Reading::ID()) {
+              const auto tmp = cluon::extractMessage<opendlv::proxy::GeodeticWgs84Reading>(std::move(e));
+              auto morton = convertLatLonToMorton(std::make_pair(tmp.latitude(), tmp.longitude()));
+              std::cerr << tmp.latitude() << ", " << tmp.longitude() << " = " << morton << ", " << k.timeStamp() << std::endl;
+
+              // Add key to separate database named "opendlv::proxy::GeodeticWgs84Reading::ID()/senderStamp-morton".
+              {
+                MDB_txn *_txn{nullptr};
+                if (nullptr == _txn) {
+                  if (!checkErrorCode(mdb_txn_begin(env, nullptr, 0, &_txn), __LINE__, "mdb_txn_begin")) {
+                    mdb_env_close(env);
+                    return 1;
+                  }
+                }
+
+                std::stringstream _dataType_senderStamp;
+                _dataType_senderStamp << opendlv::proxy::GeodeticWgs84Reading::ID() << '/'<< e.senderStamp() << "-morton";
+                const std::string _shortKey{_dataType_senderStamp.str()};
+
+                // Make sure to have a database "all" and that we have it open.
+                MDB_dbi dbGeodeticWgs84SenderStamp{0}; 
+                if (!checkErrorCode(mdb_dbi_open(_txn, _shortKey.c_str(), MDB_CREATE|MDB_DUPSORT, &dbGeodeticWgs84SenderStamp), __LINE__, "mdb_dbi_open")) {
+                  mdb_txn_abort(_txn);
+                  mdb_env_close(env);
+                  break;
+                }
+
+                // Keys are sorted by comparing uint64_t Morton codes.
+                mdb_set_compare(_txn, dbGeodeticWgs84SenderStamp, &compareMortonKeys);
+                // Multiple values are stored by existing timeStamp in nanoseconds.
+                mdb_set_dupsort(_txn, dbGeodeticWgs84SenderStamp, &compareKeys);
+
+                MDB_val __key;
+                __key.mv_size = sizeof(morton);
+                __key.mv_data = &morton;
+
+                MDB_val __value;
+                __value.mv_size = setKey(k, _key.data(), _key.capacity());
+                __value.mv_data = _key.data();
+
+                if (MDB_SUCCESS != (retCode = mdb_put(_txn, dbGeodeticWgs84SenderStamp, &__key, &__value, 0))) {
+                  std::cerr << ARGV0 << ": " << "mdbx_put: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;
+                }
+
+                // Commit write.
+                {
+                  if (MDB_SUCCESS != (retCode = mdb_txn_commit(_txn))) {
+                    std::cerr << ARGV0 << ": " << "mdb_txn_commit: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;
+                    mdb_env_close(env);
+                    break;
+                  }
+                  _txn = nullptr;
+                  mdb_dbi_close(env, dbGeodeticWgs84SenderStamp);
+                }
               }
             }
 

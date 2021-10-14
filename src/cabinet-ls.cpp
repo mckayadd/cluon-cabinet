@@ -10,6 +10,7 @@
 #include "key.hpp"
 #include "db.hpp"
 #include "lmdb.h"
+#include "morton.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -27,11 +28,13 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab [--mem=32024]" << std::endl;
     std::cerr << "         --cab: name of the database file" << std::endl;
     std::cerr << "         --mem: upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
+    std::cerr << "         --db:  database to list, default: all" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab" << std::endl;
     retCode = 1;
   } else {
     const std::string CABINET{commandlineArguments["cab"]};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
+    const std::string DB{(commandlineArguments["db"].size() != 0) ? commandlineArguments["db"] : "all"};
 
     MDB_env *env{nullptr};
     const int numberOfDatabases{100};
@@ -68,9 +71,9 @@ int32_t main(int32_t argc, char **argv) {
         mdb_env_close(env);
         return (retCode = 1);
       }
-      retCode = mdb_dbi_open(txn, "all", 0 , &dbi);
+      retCode = mdb_dbi_open(txn, DB.c_str(), 0 , &dbi);
       if (MDB_NOTFOUND  == retCode) {
-        std::clog << "[" << argv[0] << "]: No database 'all' found in " << CABINET << "." << std::endl;
+        std::clog << "[" << argv[0] << "]: No database '" << DB << "' found in " << CABINET << "." << std::endl;
       }
       else {
         mdb_set_compare(txn, dbi, &compareKeys);
@@ -80,15 +83,25 @@ int32_t main(int32_t argc, char **argv) {
         if (!mdb_stat(txn, dbi, &stat)) {
           numberOfEntries = stat.ms_entries;
         }
-        std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database 'all' in " << CABINET << std::endl;
+        std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '" << DB << "' in " << CABINET << std::endl;
 
         MDB_cursor *cursor;
         if (!(retCode = mdb_cursor_open(txn, dbi, &cursor))) {
           MDB_val key;
-          while ((retCode = mdb_cursor_get(cursor, &key, nullptr, MDB_NEXT_NODUP)) == 0) {
-            const char *ptr = static_cast<char*>(key.mv_data);
-            cabinet::Key storedKey = getKey(ptr, key.mv_size);
-            std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
+          MDB_val value;
+          while ((retCode = mdb_cursor_get(cursor, &key, &value, MDB_NEXT)) == 0) {
+            if (DB == "all") {
+              const char *ptr = static_cast<char*>(key.mv_data);
+              cabinet::Key storedKey = getKey(ptr, key.mv_size);
+              std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
+            }
+            else if (std::string::npos != DB.find("-morton")) {
+              const uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
+              auto decodedLatLon = convertMortonToLatLon(morton);
+              const char *ptr = static_cast<char*>(value.mv_data);
+              cabinet::Key storedKey = getKey(ptr, value.mv_size);
+              std::cout << morton << "(" << decodedLatLon.first << "," << decodedLatLon.second << "): " << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
+            }
           }
           mdb_cursor_close(cursor);
         }
