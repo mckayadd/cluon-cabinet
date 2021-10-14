@@ -30,7 +30,7 @@ inline uint64_t mortonEncode(const std::pair<std::uint32_t,std::uint32_t> &xy) {
   return result;
 }
 
-uint32_t mortonExtractEvenBits(uint64_t x) {
+inline uint32_t mortonExtractEvenBits(uint64_t x) {
     x = x & 0x5555555555555555;
     x = (x | (x >> 1))  & 0x3333333333333333;
     x = (x | (x >> 2))  & 0x0F0F0F0F0F0F0F0F;
@@ -40,7 +40,7 @@ uint32_t mortonExtractEvenBits(uint64_t x) {
     return static_cast<uint32_t>(x);
 }
 
-std::pair<std::uint32_t,std::uint32_t> mortonDecode(uint64_t code) {
+inline std::pair<std::uint32_t,std::uint32_t> mortonDecode(uint64_t code) {
   const uint32_t x = mortonExtractEvenBits(code);
   const uint32_t y = mortonExtractEvenBits(code >> 1);
   return std::make_pair(x, y);
