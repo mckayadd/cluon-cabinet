@@ -24,9 +24,10 @@ int32_t main(int32_t argc, char **argv) {
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
   if (0 == commandlineArguments.count("cab")) {
     std::cerr << argv[0] << " display contents of a .cab file with envelopes." << std::endl;
-    std::cerr << "Usage:   " << argv[0] << " --cab=MyFile.cab" << std::endl;
+    std::cerr << "Usage:   " << argv[0] << " --cab=MyFile.cab [--odvd=MyFile.odvd] [--mem=32024]" << std::endl;
     std::cerr << "         --cab:      name of the database file" << std::endl;
     std::cerr << "         --odvd:     name of the ODVD message specification to display resolvable envelopes" << std::endl;
+    std::cerr << "         --mem:      upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=MyFile.cab --odvd=MySpec.odvd" << std::endl;
     retCode = 1;
   }
@@ -49,6 +50,7 @@ int32_t main(int32_t argc, char **argv) {
     for (const auto &e : messageParserResult.first) { scope[e.messageIdentifier()] = e; }
 
     const std::string CAB{commandlineArguments["cab"]};
+    const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
 
     // lambda to check the interaction with the database.
     auto checkErrorCode = [_argv=argv](int32_t rc, int32_t line, std::string caller) {
@@ -63,12 +65,13 @@ int32_t main(int32_t argc, char **argv) {
     if (!checkErrorCode(mdb_env_create(&env), __LINE__, "mdb_env_create")) {
       return (retCode = 1);
     }
-    int numberOfDatabases{50};
+    int numberOfDatabases{100};
+
     if (!checkErrorCode(mdb_env_set_maxdbs(env, numberOfDatabases), __LINE__, "mdb_env_set_maxdbs")) {
       mdb_env_close(env);
       return (retCode = 1);
     }
-    const int64_t SIZE_DB = 64UL * 1024UL * 1024UL * 1024UL * 1024UL;
+    const int64_t SIZE_DB = MEM * 1024UL * 1024UL * 1024UL;
     if (!checkErrorCode(mdb_env_set_mapsize(env, SIZE_DB), __LINE__, "mdb_env_set_mapsize")) {
       mdb_env_close(env);
       return (retCode = 1);

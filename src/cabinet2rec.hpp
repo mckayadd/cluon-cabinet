@@ -26,11 +26,11 @@
 #include <iomanip>
 #include <string>
 
-inline int cabinet2rec(const std::string &ARGV0, const std::string &CABINET, const std::string &REC, const bool &VERBOSE) {
+inline int cabinet2rec(const std::string &ARGV0, const uint64_t &MEM, const std::string &CABINET, const std::string &REC, const bool &VERBOSE) {
   int32_t retCode{0};
   MDB_env *env{nullptr};
   const int numberOfDatabases{100};
-  const int64_t SIZE_DB = 64UL * 1024UL * 1024UL * 1024UL * 1024UL;
+  const int64_t SIZE_DB = MEM * 1024UL * 1024UL * 1024UL;
 
   // lambda to check the interaction with the database.
   auto checkErrorCode = [argv0=ARGV0](int32_t rc, int32_t line, std::string caller) {

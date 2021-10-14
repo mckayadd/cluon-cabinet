@@ -23,9 +23,10 @@ int32_t main(int32_t argc, char **argv) {
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
   if (0 == commandlineArguments.count("cab")) {
     std::cerr << argv[0] << " exports all entries from the 'all' table of a cabinet (an lmdb-based key/value-database) as Envelopes to a .rec-file." << std::endl;
-    std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab" << std::endl;
+    std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab [--rec=myFile.rec] [--mem=32024] [--verbose]" << std::endl;
     std::cerr << "         --cab:     name of the database file" << std::endl;
     std::cerr << "         --rec:     name of the rec file (optional; otherwise, a new file based on the .cab file with .rec as suffix is created)" << std::endl;
+    std::cerr << "         --mem:     upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
     std::cerr << "         --verbose: display information" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab --rec=myRecFile.rec" << std::endl;
     retCode = 1;
@@ -34,10 +35,11 @@ int32_t main(int32_t argc, char **argv) {
 
     const std::string CABINET{commandlineArguments["cab"]};
     const std::string REC{(commandlineArguments["rec"].size() != 0) ? commandlineArguments["rec"] : "./" + CABINET + ".rec"};
+    const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
     const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
 
     const std::string ARGV0{argv[0]};
-    retCode = cabinet2rec(ARGV0, CABINET, REC, VERBOSE);
+    retCode = cabinet2rec(ARGV0, MEM, CABINET, REC, VERBOSE);
   }
   return retCode;
 }

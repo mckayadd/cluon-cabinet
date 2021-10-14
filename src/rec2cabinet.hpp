@@ -28,11 +28,11 @@
 #include <string>
 #include <vector>
 
-inline int rec2cabinet(const std::string &ARGV0, const std::string &REC, const std::string &CABINET, const bool &VERBOSE) {
+inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std::string &REC, const std::string &CABINET, const bool &VERBOSE) {
   int32_t retCode{0};
   MDB_env *env{nullptr};
   const int numberOfDatabases{100};
-  const int64_t SIZE_DB = 64UL *1024UL * 1024UL * 1024UL * 1024UL;
+  const int64_t SIZE_DB = MEM * 1024UL * 1024UL * 1024UL;
   const uint64_t MAXKEYSIZE = 511;
 
   // lambda to check the interaction with the database.

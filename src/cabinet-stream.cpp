@@ -23,8 +23,9 @@ int32_t main(int32_t argc, char **argv) {
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
   if (0 == commandlineArguments.count("cab")) {
     std::cerr << argv[0] << " prints all entries from table 'all' of a cabinet (an lmdb-based key/value-database) as Envelopes to stdout." << std::endl;
-    std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab" << std::endl;
+    std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab [--mem=32024] [--verbose]" << std::endl;
     std::cerr << "         --cab:     name of the database file" << std::endl;
+    std::cerr << "         --mem:     upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
     std::cerr << "         --verbose: display information on stderr" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab" << std::endl;
     retCode = 1;
@@ -32,10 +33,11 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr.imbue(std::locale(std::cout.getloc(), new space_out));
 
     const std::string CABINET{commandlineArguments["cab"]};
+    const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
     const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
 
     const std::string ARGV0{argv[0]};
-    retCode = cabinet_stream(ARGV0, CABINET, VERBOSE);
+    retCode = cabinet_stream(ARGV0, MEM, CABINET, VERBOSE);
   }
   return retCode;
 }
