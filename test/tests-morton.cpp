@@ -604,10 +604,56 @@ TEST_CASE("Range querying Morton-indexed GPS traces") {
           const char *ptr = static_cast<char*>(value.mv_data);
           std::memcpy(&timeStamp, ptr, value.mv_size);
           timeStamp = be64toh(timeStamp);
-          std::cout << morton << "(" << decodedLatLon.first << "," << decodedLatLon.second << "): " << timeStamp << std::endl;
+          //std::cout << morton << "(" << decodedLatLon.first << "," << decodedLatLon.second << "): " << timeStamp << std::endl;
         }
       }
 
+      // Query around a known coordinate (southern-most point at right connection to AZ city area): 57.771466,12.775336
+      // BL: 57.771302,12.774653
+      uint64_t bl_morton{0};
+      {
+        const std::pair<float,float> a(57.771302f,12.774653f);
+        bl_morton = convertLatLonToMorton(a);
+      }
+      // TR: 57.771677,12.776144
+      uint64_t tr_morton{0};
+      {
+        const std::pair<float,float> a(57.771677,12.776144);
+        tr_morton = convertLatLonToMorton(a);
+      }
+
+      std::cout << bl_morton << ", " << tr_morton << std::endl;
+      key.mv_size = sizeof(bl_morton);
+      auto _bl_morton = htobe64(bl_morton);
+      key.mv_data = &_bl_morton;
+      REQUIRE(MDB_NOTFOUND != mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE));
+
+      std::vector<uint64_t> mortonCodes;
+      std::vector<int64_t> timeStamps;
+      while (mdb_cursor_get(cursor, &key, &value, MDB_NEXT) == 0) {
+        uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
+        morton = be64toh(morton);
+        auto decodedLatLon = convertMortonToLatLon(morton);
+        int64_t timeStamp{0};
+        if (value.mv_size == sizeof(int64_t)) {
+          const char *ptr = static_cast<char*>(value.mv_data);
+          std::memcpy(&timeStamp, ptr, value.mv_size);
+          timeStamp = be64toh(timeStamp);
+          std::cout << bl_morton << "." << morton << "." << tr_morton << "(" << decodedLatLon.first << "," << decodedLatLon.second << "): " << timeStamp << std::endl;
+          mortonCodes.push_back(morton);
+          timeStamps.push_back(timeStamp);
+        }
+        if (morton > tr_morton) break;
+      }
+
+      REQUIRE(mortonCodes.size() == 2);
+      REQUIRE(timeStamps.size() == 2);
+
+      REQUIRE(mortonCodes.at(0) == 664281610651125);
+      REQUIRE(mortonCodes.at(1) == 664281610662653);
+
+      REQUIRE(timeStamps.at(0) == 273001173000);
+      REQUIRE(timeStamps.at(1) == 263001163000);
 #if 0
       REQUIRE(0 == mdb_cursor_get(cursor, &key, &value, MDB_NEXT));
       {
