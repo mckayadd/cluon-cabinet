@@ -351,7 +351,7 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
 
                 // Make sure to have a database "all" and that we have it open.
                 MDB_dbi dbGeodeticWgs84SenderStamp{0}; 
-                if (!checkErrorCode(mdb_dbi_open(_txn, _shortKey.c_str(), MDB_CREATE|MDB_DUPSORT, &dbGeodeticWgs84SenderStamp), __LINE__, "mdb_dbi_open")) {
+                if (!checkErrorCode(mdb_dbi_open(_txn, _shortKey.c_str(), MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED, &dbGeodeticWgs84SenderStamp), __LINE__, "mdb_dbi_open")) {
                   mdb_txn_abort(_txn);
                   mdb_env_close(env);
                   break;
@@ -367,8 +367,10 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
                 __key.mv_data = &morton;
 
                 MDB_val __value;
-                __value.mv_size = setKey(k, _key.data(), _key.capacity());
-                __value.mv_data = _key.data();
+                int64_t _timeStamp = k.timeStamp();
+                _timeStamp = htobe64(_timeStamp);
+                __value.mv_size = sizeof(_timeStamp);
+                __value.mv_data = &_timeStamp;
 
                 if (MDB_SUCCESS != (retCode = mdb_put(_txn, dbGeodeticWgs84SenderStamp, &__key, &__value, 0))) {
                   std::cerr << ARGV0 << ": " << "mdbx_put: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;

@@ -98,9 +98,13 @@ int32_t main(int32_t argc, char **argv) {
             else if (std::string::npos != DB.find("-morton")) {
               const uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
               auto decodedLatLon = convertMortonToLatLon(morton);
-              const char *ptr = static_cast<char*>(value.mv_data);
-              cabinet::Key storedKey = getKey(ptr, value.mv_size);
-              std::cout << morton << "(" << decodedLatLon.first << "," << decodedLatLon.second << "): " << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
+              int64_t timeStamp{0};
+              if (value.mv_size == sizeof(int64_t)) {
+                const char *ptr = static_cast<char*>(value.mv_data);
+                std::memcpy(&timeStamp, ptr, value.mv_size);
+                timeStamp = be64toh(timeStamp);
+                std::cout << morton << "(" << decodedLatLon.first << "," << decodedLatLon.second << "): " << timeStamp << std::endl;
+              }
             }
           }
           mdb_cursor_close(cursor);
