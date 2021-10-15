@@ -362,11 +362,13 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
                 // Multiple values are stored by existing timeStamp in nanoseconds.
                 mdb_set_dupsort(_txn, dbGeodeticWgs84SenderStamp, &compareKeys);
 
+                // key is the morton code in network byte order
                 MDB_val __key;
                 __key.mv_size = sizeof(morton);
                 morton = htobe64(morton);
                 __key.mv_data = &morton;
 
+                // value is the nanosecond timestamp in network byte order of the entry from table 'all'
                 MDB_val __value;
                 int64_t _timeStamp = k.timeStamp();
                 _timeStamp = htobe64(_timeStamp);
