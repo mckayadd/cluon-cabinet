@@ -35,8 +35,7 @@ inline int compareMortonKeys(const MDB_val *a, const MDB_val *b) {
   uint64_t rhs{*(static_cast<uint64_t*>(b->mv_data))};
   lhs = be64toh(lhs);
   rhs = be64toh(rhs);
-  const uint64_t delta{lhs - rhs};
-  return (delta < 0 ? -1 : (delta > 0 ? 1 : 0));
+  return (lhs < rhs ? -1 : (lhs > rhs ? 1 : 0));
 };
 
 inline uint64_t mortonEncode(const std::pair<std::uint32_t,std::uint32_t> &xy) {

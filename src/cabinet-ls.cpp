@@ -76,7 +76,14 @@ int32_t main(int32_t argc, char **argv) {
         std::clog << "[" << argv[0] << "]: No database '" << DB << "' found in " << CABINET << "." << std::endl;
       }
       else {
-        mdb_set_compare(txn, dbi, &compareKeys);
+        if (DB == "all") {
+          mdb_set_compare(txn, dbi, &compareKeys);
+        }
+        else if (std::string::npos != DB.find("-morton")) {
+          mdb_set_compare(txn, dbi, &compareMortonKeys);
+          // Multiple values are stored by existing timeStamp in nanoseconds.
+          mdb_set_dupsort(txn, dbi, &compareKeys);
+        }
 
         uint64_t numberOfEntries{0};
         MDB_stat stat;
@@ -96,7 +103,8 @@ int32_t main(int32_t argc, char **argv) {
               std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
             }
             else if (std::string::npos != DB.find("-morton")) {
-              const uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
+              uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
+              morton = be64toh(morton);
               auto decodedLatLon = convertMortonToLatLon(morton);
               int64_t timeStamp{0};
               if (value.mv_size == sizeof(int64_t)) {

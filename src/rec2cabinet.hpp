@@ -364,6 +364,7 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
 
                 MDB_val __key;
                 __key.mv_size = sizeof(morton);
+                morton = htobe64(morton);
                 __key.mv_data = &morton;
 
                 MDB_val __value;
