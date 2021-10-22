@@ -86,7 +86,7 @@ int32_t main(int32_t argc, char **argv) {
             // Extract value from Envelope and compute Morton code.
             const auto tmp = cluon::extractMessage<opendlv::proxy::GeodeticWgs84Reading>(std::move(e.second));
             auto morton = convertLatLonToMorton(std::make_pair(tmp.latitude(), tmp.longitude()));
-            std::cerr << tmp.latitude() << ", " << tmp.longitude() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
+            //std::cerr << tmp.latitude() << ", " << tmp.longitude() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
 
             // Store data.
             auto txn = lmdb::txn::begin(envout);
@@ -112,30 +112,7 @@ int32_t main(int32_t argc, char **argv) {
 
             txn.commit();
           }
-break;
         }
-
-
-#if 0
-                if (MDB_SUCCESS != (retCode = mdb_put(_txn, dbGeodeticWgs84SenderStamp, &__key, &__value, 0))) {
-                  std::cerr << ARGV0 << ": " << "mdbx_put: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;
-                }
-
-                // Commit write.
-                {
-                  if (MDB_SUCCESS != (retCode = mdb_txn_commit(_txn))) {
-                    std::cerr << ARGV0 << ": " << "mdb_txn_commit: (" << retCode << ") " << mdb_strerror(retCode) << std::endl;
-                    mdb_env_close(env);
-                    break;
-                  }
-                  _txn = nullptr;
-                  mdb_dbi_close(env, dbGeodeticWgs84SenderStamp);
-                }
-              }
-            }
-
-
-#endif
 
         const int32_t percentage = static_cast<int32_t>((static_cast<float>(entries) * 100.0f) / static_cast<float>(totalEntries));
         if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
@@ -145,7 +122,6 @@ break;
       }
       cursor.close();
       rotxn.abort();
-      std::cerr << totalEntries << " entries." << std::endl;
     }
     catch (...) {
       failed = true;
