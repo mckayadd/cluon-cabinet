@@ -60,8 +60,6 @@ int32_t main(int32_t argc, char **argv) {
       uint64_t entries{0};
       while (cursor.get(&key, &value, MDB_NEXT)) {
         entries++;
-        if (entries == 60000000) break;
-
         const char *ptr = static_cast<char*>(key.mv_data);
         cabinet::Key storedKey = getKey(ptr, key.mv_size);
         if (storedKey.dataType() == opendlv::proxy::GeodeticWgs84Reading::ID()) {
