@@ -188,6 +188,9 @@ target_link_libraries(cabinet-ls ${LIBRARIES})
 add_executable(cabinet-overview ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-overview.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-overview ${LIBRARIES})
 
+add_executable(cabinet-WGS84toMorton ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-WGS84toMorton.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
+target_link_libraries(cabinet-WGS84toMorton ${LIBRARIES})
+
 ################################################################################
 enable_testing()
 add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-key.cpp ${GENERATED_HEADERS})
