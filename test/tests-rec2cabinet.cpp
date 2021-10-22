@@ -17,6 +17,8 @@
 #include "rec2cabinet.hpp"
 #include "cabinet2rec.hpp"
 
+#include "lmdb++.h"
+
 #include <fstream>
 #include <string>
 
