@@ -76,15 +76,15 @@ int32_t main(int32_t argc, char **argv) {
         std::clog << "[" << argv[0] << "]: No database '" << DB << "' found in " << CABINET << "." << std::endl;
       }
       else {
-        if (DB == "all") {
-          mdb_set_compare(txn, dbi, &compareKeys);
-        }
-        else if (std::string::npos != DB.find("-morton")) {
+        if (std::string::npos != DB.find("-morton")) {
           mdb_set_compare(txn, dbi, &compareMortonKeys);
           // Multiple values are stored by existing timeStamp in nanoseconds.
           mdb_set_dupsort(txn, dbi, &compareKeys);
         }
-
+        // else if (DB == "all") {
+        else {
+          mdb_set_compare(txn, dbi, &compareKeys);
+        }
         uint64_t numberOfEntries{0};
         MDB_stat stat;
         if (!mdb_stat(txn, dbi, &stat)) {
@@ -97,12 +97,7 @@ int32_t main(int32_t argc, char **argv) {
           MDB_val key;
           MDB_val value;
           while ((retCode = mdb_cursor_get(cursor, &key, &value, MDB_NEXT)) == 0) {
-            if (DB == "all") {
-              const char *ptr = static_cast<char*>(key.mv_data);
-              cabinet::Key storedKey = getKey(ptr, key.mv_size);
-              std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
-            }
-            else if (std::string::npos != DB.find("-morton")) {
+            if (std::string::npos != DB.find("-morton")) {
               uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
               morton = be64toh(morton);
               auto decodedLatLon = convertMortonToLatLon(morton);
@@ -113,6 +108,12 @@ int32_t main(int32_t argc, char **argv) {
                 timeStamp = be64toh(timeStamp);
                 std::cout << morton << "(" << decodedLatLon.first << "," << decodedLatLon.second << "): " << timeStamp << std::endl;
               }
+            }
+            // else if (DB == "all") {
+            else {
+              const char *ptr = static_cast<char*>(key.mv_data);
+              cabinet::Key storedKey = getKey(ptr, key.mv_size);
+              std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
             }
           }
           mdb_cursor_close(cursor);
