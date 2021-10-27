@@ -1,8 +1,9 @@
 b
 build
-*rec
-*cabinet
+*rec*
+*cabinet*
 *cabinet-lock
+*cab*
 
 *.swp
 
