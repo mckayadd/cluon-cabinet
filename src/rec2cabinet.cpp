@@ -26,10 +26,11 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << argv[0] << " transforms a .rec file with Envelopes to an lmdb-based key/value-database." << std::endl;
     std::cerr << "If the specified database exists, the content of the .rec file is added." << std::endl;
     std::cerr << "Usage:   " << argv[0] << " --rec=MyFile.rec [--verbose] [--cab=myFile.cab] [--mem=32024]" << std::endl;
-    std::cerr << "         --rec:     name of the recording file" << std::endl;
-    std::cerr << "         --cab:     name of the database file (optional; otherwise, a new file based on the .rec file with .cab as suffix is created)" << std::endl;
-    std::cerr << "         --mem:     upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
-    std::cerr << "         --verbose: display information" << std::endl;
+    std::cerr << "         --rec:      name of the recording file" << std::endl;
+    std::cerr << "         --cab:      name of the database file (optional; otherwise, a new file based on the .rec file with .cab as suffix is created)" << std::endl;
+    std::cerr << "         --mem:      upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
+    std::cerr << "         --userdata: uint64_t user supplied optional data (default: 0), which can be used to add further information to this import" << std::endl;
+    std::cerr << "         --verbose:  display information" << std::endl;
     std::cerr << "Example: " << argv[0] << " --rec=myFile.rec --cab=myStore.cab --mem=64000" << std::endl;
     retCode = 1;
   } else {
@@ -37,10 +38,11 @@ int32_t main(int32_t argc, char **argv) {
     const std::string REC{commandlineArguments["rec"]};
     const std::string CABINET{(commandlineArguments["cab"].size() != 0) ? commandlineArguments["cab"] : "./" + REC + ".cab"};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
+    const uint64_t USERDATA{(commandlineArguments["userdata"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["userdata"])) : 0};
     const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
 
     const std::string ARGV0{argv[0]};
-    retCode = rec2cabinet(ARGV0, MEM, REC, CABINET, VERBOSE);
+    retCode = rec2cabinet(ARGV0, MEM, REC, CABINET, USERDATA, VERBOSE);
   }
   return retCode;
 }

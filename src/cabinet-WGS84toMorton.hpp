@@ -70,7 +70,9 @@ inline bool cabinet_WGS84toMorton(const uint64_t &MEM, const std::string &CABINE
           // Extract value from Envelope and compute Morton code.
           const auto tmp = cluon::extractMessage<opendlv::proxy::GeodeticWgs84Reading>(std::move(e.second));
           auto morton = convertLatLonToMorton(std::make_pair(tmp.latitude(), tmp.longitude()));
-          //std::cerr << tmp.latitude() << ", " << tmp.longitude() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
+          if (VERBOSE) {
+            std::cerr << tmp.latitude() << ", " << tmp.longitude() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
+          }
 
           // Store data.
           auto txn = lmdb::txn::begin(envout);

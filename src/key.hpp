@@ -53,21 +53,23 @@ inline size_t setKey(cabinet::Key k, char *dest, const size_t &len) noexcept {
   // b16-b23: uint64_t for xxhash
   // b24-b27: uint32_t for xxhash of source file
   // b28-b29: uint16_t for length of uncompressed Envelope
-  // b30: uint8_t for version
+  // b30-b37: uint64_t for userData
+  // b38: uint8_t for version
   const size_t MIN_LEN{sizeof(decltype(k.timeStamp()))
                       +sizeof(decltype(k.dataType()))
                       +sizeof(decltype(k.senderStamp()))
                       +sizeof(decltype(k.hash()))
                       +sizeof(decltype(k.hashOfRecFile()))
                       +sizeof(decltype(k.length()))
+                      +sizeof(decltype(k.userData()))
                       +sizeof(decltype(k.version()))};
   if ( (nullptr != dest) && (MIN_LEN <= len) ) {
     uint16_t offset{0};
     // "visiting" message data structure that describes a key
     k.accept([](uint32_t, const std::string &, const std::string &) {},
              [dest, &offset](uint32_t field, std::string &&, std::string &&, auto v) {
-              // only dump the first 7 fields.
-              if (7 >= field) {
+              // only dump the first 8 fields.
+              if (8 >= field) {
                 // convert values to network byte order.
                 decltype(v) hton{v};
                 if (2 == sizeof(v)) { hton = htobe16(v); }
@@ -100,14 +102,15 @@ inline cabinet::Key getKey(const char *src, const size_t &len) noexcept {
                       +sizeof(decltype(k.hash()))
                       +sizeof(decltype(k.hashOfRecFile()))
                       +sizeof(decltype(k.length()))
+                      +sizeof(decltype(k.userData()))
                       +sizeof(decltype(k.version()))};
   if ( (nullptr != src) && (MIN_LEN <= len) ) {
     uint16_t offset{0};
     // "visiting" message data structure to read a key
     k.accept([](uint32_t, const std::string &, const std::string &) {},
              [src, &offset](uint32_t field, std::string &&, std::string &&, auto &v) {
-              // only extract the first 7 fields.
-              if (7 >= field) {
+              // only extract the first 8 fields.
+              if (8 >= field) {
                 decltype(v) ntoh{v};
 
                 // read values as specified in .odvd file

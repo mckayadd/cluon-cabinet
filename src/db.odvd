@@ -5,5 +5,6 @@ message cabinet.Key     [id = 1] {
   uint64 hash           [id = 4]; // hash of the Envelope stored in the database
   uint32 hashOfRecFile  [id = 5]; // hash of the source file from which this Envelope was extracted
   uint16 length         [id = 6]; // length of the uncompressed Envelope
-  uint8  version        [id = 7]; // version of this Key format
+  uint64 userData       [id = 7]; // user-supplied numerical data (uint64); could be used to separate sets of recordings
+  uint8  version        [id = 8]; // version of this Key format
 }

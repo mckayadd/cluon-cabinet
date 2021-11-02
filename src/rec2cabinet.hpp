@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std::string &REC, const std::string &CABINET, const bool &VERBOSE) {
+inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std::string &REC, const std::string &CABINET, const uint64_t &USERDATA, const bool &VERBOSE) {
   int32_t retCode{0};
   MDB_env *env{nullptr};
   const int numberOfDatabases{100};
@@ -220,6 +220,7 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
               .hash(hash)
               .hashOfRecFile(hashOfFilename)
               .length(sVal.size())
+              .userData(USERDATA)
               .version(0);
 
             MDB_val key;
