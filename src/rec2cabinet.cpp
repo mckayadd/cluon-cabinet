@@ -38,7 +38,7 @@ int32_t main(int32_t argc, char **argv) {
     const std::string REC{commandlineArguments["rec"]};
     const std::string CABINET{(commandlineArguments["cab"].size() != 0) ? commandlineArguments["cab"] : "./" + REC + ".cab"};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
-    const uint64_t USERDATA{(commandlineArguments["userdata"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["userdata"])) : 0};
+    const uint64_t USERDATA{(commandlineArguments["userdata"].size() != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["userdata"])) : 0};
     const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
 
     const std::string ARGV0{argv[0]};

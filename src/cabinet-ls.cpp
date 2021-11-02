@@ -113,7 +113,7 @@ int32_t main(int32_t argc, char **argv) {
             else {
               const char *ptr = static_cast<char*>(key.mv_data);
               cabinet::Key storedKey = getKey(ptr, key.mv_size);
-              std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << std::endl;
+              std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", userData = 0x" << std::hex << storedKey.userData() << std::dec << std::endl;
             }
           }
           mdb_cursor_close(cursor);
