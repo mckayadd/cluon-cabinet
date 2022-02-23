@@ -47,6 +47,9 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
     uint64_t entries{0};
     uint64_t skipped{0};
     uint64_t kept{0};
+    uint64_t invalid{0};
+    int64_t tripStart{0};
+    cabinet::Key keyTripStart;
     bool firstValidGPSLocationStored = false;
     std::vector<std::pair<std::vector<char>, std::vector<char> > > bufferOfKeyValuePairsToStore;
     while (cursor.get(&key, &value, MDB_NEXT)) {
@@ -77,6 +80,10 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
           }
 
           if (inside) {
+            if (0 == tripStart) {
+              tripStart = storedKey.timeStamp();
+              keyTripStart = storedKey;
+            }
             // Only store buffered key/value pairs after the first valid GPS location has been stored.
             if (firstValidGPSLocationStored) {
               // Firstly, all message that are buffered so far must be stored in the database.
@@ -173,7 +180,7 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
 
                 // Store data.
                 auto txn = lmdb::txn::begin(envout);
-                auto dbGeodeticWgs84SenderStamp = lmdb::dbi::open(txn, _shortKey.c_str(), MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
+                auto dbGeodeticWgs84SenderStamp = lmdb::dbi::open(txn, _shortKey.c_str(), MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED);
                 dbGeodeticWgs84SenderStamp.set_compare(txn, &compareMortonKeys);
                 lmdb::dbi_set_dupsort(txn, dbGeodeticWgs84SenderStamp.handle(), &compareKeys);
                 {
@@ -203,7 +210,44 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
             // Clear buffered key/value pairs as this GPS location is outside the last that was within.
             skipped += bufferOfKeyValuePairsToStore.size();
             bufferOfKeyValuePairsToStore.clear();
+
+            // Store start/end time stamps.
+            if (0 != tripStart) {
+              int64_t tripEnd = storedKey.timeStamp();
+              std::cout << tripStart << " --> " << tripEnd << std::endl;
+              {
+                const std::string _shortKey{"trips"};
+
+                // Store data.
+                auto txn = lmdb::txn::begin(envout);
+                auto dbTrips = lmdb::dbi::open(txn, _shortKey.c_str(), MDB_CREATE);
+                dbTrips.set_compare(txn, &compareKeys);
+                {
+                  // key is the cabinet::Key from the trip start.
+                  MDB_val __key;
+                  std::vector<char> _key;
+                  const uint64_t MAXKEYSIZE = 511;
+                  _key.reserve(MAXKEYSIZE);
+
+                  __key.mv_size = setKey(keyTripStart, _key.data(), _key.capacity());
+                  __key.mv_data = _key.data();
+
+                  // value is the end time stamp in network byte order
+                   MDB_val __value;
+                  __value.mv_size = sizeof(int64_t);
+                  int64_t tmp2 = htobe64(tripEnd);
+                  __value.mv_data = &tmp2;
+
+                  lmdb::dbi_put(txn, dbTrips.handle(), &__key, &__value, 0);
+                }
+                txn.commit();
+              }
+
+              tripStart = 0;
+            }
           }
+        } else {
+          invalid++;
         }
       }
       else {
@@ -224,7 +268,7 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
 
       const int32_t percentage = static_cast<int32_t>((static_cast<float>(entries) * 100.0f) / static_cast<float>(totalEntries));
       if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
-        std::clog <<"Processed " << percentage << "% (" << entries << " entries, kept: " << kept << ", skipped: " << skipped << ") from " << CABINET << std::endl;
+        std::clog <<"Processed " << percentage << "% (" << entries << " entries, kept: " << kept << ", skipped: " << skipped << ", invalid: " << invalid << ") from " << CABINET << std::endl;
         oldPercentage = percentage;
       }
     }
