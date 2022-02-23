@@ -26,15 +26,18 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "         --out:       name of the database file to be created from the selected WGS84 locations codes" << std::endl;
     std::cerr << "         --mem:       upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
     std::cerr << "         --geofence:  polygon of WGS84 coordinates: coord1;coord2;coord3;...;coord_n; example: --geofence=\"57.730744,12.159515;57.717822,12.189958\"" << std::endl;
+    std::cerr << "         --gpx:       create a .gpx track file per identified trip" << std::endl;
     std::cerr << "         --verbose:   display information on stderr" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab" << std::endl;
     retCode = 1;
   } else {
+    // GPX export: for i in $(ls *gpx); do docker run --rm -ti -v $PWD:/h -w /h chrberger/gpxtopng:latest $i -o $i.png; done
     const std::string CABINET{commandlineArguments["cab"]};
     const std::string TRIPSCABINET{(commandlineArguments["out"].size() != 0) ? commandlineArguments["out"] : CABINET + "-WGS84-Trips"};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
     const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
     const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
+    const bool GPX{(commandlineArguments["gpx"].size() != 0)};
     const std::string geofence = commandlineArguments["geofence"];
 
     std::vector<std::string> listOfCoordinates = stringtoolbox::split(geofence, ';');
@@ -56,7 +59,7 @@ int32_t main(int32_t argc, char **argv) {
       }
     }
 
-    retCode = cabinet_WGS84toTrips(MEM, CABINET, ID, polygon, TRIPSCABINET, VERBOSE);
+    retCode = cabinet_WGS84toTrips(MEM, CABINET, ID, polygon, TRIPSCABINET, GPX, VERBOSE);
   }
   return retCode;
 }

@@ -16,12 +16,17 @@
 #include "lmdb++.h"
 #include "lz4.h"
 #include "geofence.hpp"
+#include "WGS84toCartesian.hpp"
 
+#include <cmath>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
 
-inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET, const uint32_t &senderStamp, std::vector<std::array<double,2>> polygon, const std::string &TRIPSCABINET, const bool &VERBOSE) {
+inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET, const uint32_t &senderStamp, std::vector<std::array<double,2>> polygon, const std::string &TRIPSCABINET, const bool &GPX, const bool &VERBOSE) {
   bool failed{false};
   try {
     auto env = lmdb::env::create();
@@ -43,15 +48,37 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
     auto cursor = lmdb::cursor::open(rotxn, dbi);
     MDB_val key;
     MDB_val value;
+
     int32_t oldPercentage{-1};
     uint64_t entries{0};
     uint64_t skipped{0};
     uint64_t kept{0};
     uint64_t invalid{0};
+
     int64_t tripStart{0};
     cabinet::Key keyTripStart;
     cabinet::Key keyTripEnd;
+    std::array<double,2> posTripStart;
+    std::array<double,2> posTripEnd;
+
     bool firstValidGPSLocationStored = false;
+
+    // GPX export.
+    std::array<double,2> lastPos;
+    std::array<double,2> currentPos;
+    std::string filenameGPX;
+    const char *GPX_HEADER1 = R"(<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.0">
+  <name>)";
+    const char *GPX_HEADER2 = R"(</name>
+<trk><name>GPX export</name><number>1</number><trkseg>
+)";
+    const char *GPX_FOOTER = R"(</trkseg></trk>
+</gpx>
+)";
+
+    std::stringstream sstrGPX;
+
     std::vector<std::pair<std::vector<char>, std::vector<char> > > bufferOfKeyValuePairsToStore;
     while (cursor.get(&key, &value, MDB_NEXT)) {
       entries++;
@@ -84,9 +111,55 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
             if (0 == tripStart) {
               tripStart = storedKey.timeStamp();
               keyTripStart = storedKey;
+              posTripStart = pos;
+
+              if (GPX) {
+                lastPos[0] = lastPos[1] = 0; 
+                sstrGPX.str("");
+                sstrGPX << std::string(GPX_HEADER1) << "GPX-Trace-" << tripStart << std::string(GPX_HEADER2);
+              }
+            }
+
+            if (GPX) {
+              // Always store the current position to end the trace smoothly.
+              currentPos = pos;
+
+              struct tm ts;
+              char buf[80];
+              // Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
+              time_t timestamp = e.second.sampleTimeStamp().seconds();
+              ts = *localtime(&timestamp);
+              strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &ts);
+              std::string t(buf);
+
+              {
+                char buf[80];
+                strftime(buf, sizeof(buf), "%Y-%m-%dT%H%M%SZ", &ts);
+                std::stringstream sstrFilename;
+                sstrFilename << std::string(buf) << "-" << tripStart << ".gpx";
+                filenameGPX = sstrFilename.str();
+              }
+
+              // Initial position.
+              if (fabs(lastPos[0]+lastPos[1]) < 1e-4) {
+                lastPos = pos;
+                sstrGPX << "<trkpt lat=\"" << std::setprecision(8) << pos[0] << "\" lon=\"" << pos[1] << "\">"
+                        << "<ele>" << 0 << "</ele><time>" << t << "</time></trkpt>" << std::endl;
+              }
+              else {
+                // Compute distance between last position and current position to be larger than 2m.
+                std::array<double, 2> cartesianPosition = wgs84::toCartesian(lastPos, pos);
+                double len = sqrt(cartesianPosition[0]*cartesianPosition[0] + cartesianPosition[1]*cartesianPosition[1]);
+                if (len > 2) {
+                  lastPos = pos;
+                  sstrGPX << "<trkpt lat=\"" << std::setprecision(8) << pos[0] << "\" lon=\"" << pos[1] << "\">"
+                          << "<ele>" << 0 << "</ele><time>" << t << "</time></trkpt>" << std::endl;
+                }
+              }
             }
             // Always store the current key as keyTripEnd as this key could be the last valid GPS position within the geofence.
             keyTripEnd = storedKey;
+            posTripEnd = pos;
 
             // Only store buffered key/value pairs after the first valid GPS location has been stored.
             if (firstValidGPSLocationStored) {
@@ -218,7 +291,7 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
             // Store start/end time stamps.
             if (0 != tripStart) {
               int64_t tripEnd = keyTripEnd.timeStamp();
-              std::cout << tripStart << " --> " << tripEnd << std::endl;
+              std::cout << tripStart << " --> " << tripEnd << ": " << std::setprecision(10) << posTripStart[0] << "," << posTripStart[1] << " --> " << posTripEnd[0] << "," << posTripEnd[1] << std::setprecision(4) << std::endl;
               {
                 const std::string _shortKey{"trips"};
 
@@ -248,6 +321,27 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
               }
 
               tripStart = 0;
+
+              // Spit out GPX.
+              if (GPX) {
+                struct tm ts;
+                char buf[80];
+                // Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
+                time_t timestamp = e.second.sampleTimeStamp().seconds();
+                ts = *localtime(&timestamp);
+                strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &ts);
+                std::string t(buf);
+
+                // Last valid position.
+                sstrGPX << "<trkpt lat=\"" << std::setprecision(8) << currentPos[0] << "\" lon=\"" << currentPos[1] << "\">"
+                        << "<ele>" << 0 << "</ele><time>" << t << "</time></trkpt>" << std::endl;
+                sstrGPX << std::string(GPX_FOOTER);
+
+                std::fstream fout(filenameGPX.c_str(), std::ios::out|std::ios::trunc);
+                fout << sstrGPX.str();
+                fout.flush();
+                fout.close();
+              }
             }
           }
         } else {

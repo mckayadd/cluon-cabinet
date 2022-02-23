@@ -1,9 +1,10 @@
 b
 build
-*rec*
-*cabinet*
-*cabinet-lock
-*cab*
+*.rec
+*.cabinet
+*-lock
+*.cab
+*.cab-*
 
 *.swp
 
