@@ -50,6 +50,7 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
     uint64_t invalid{0};
     int64_t tripStart{0};
     cabinet::Key keyTripStart;
+    cabinet::Key keyTripEnd;
     bool firstValidGPSLocationStored = false;
     std::vector<std::pair<std::vector<char>, std::vector<char> > > bufferOfKeyValuePairsToStore;
     while (cursor.get(&key, &value, MDB_NEXT)) {
@@ -84,6 +85,9 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
               tripStart = storedKey.timeStamp();
               keyTripStart = storedKey;
             }
+            // Always store the current key as keyTripEnd as this key could be the last valid GPS position within the geofence.
+            keyTripEnd = storedKey;
+
             // Only store buffered key/value pairs after the first valid GPS location has been stored.
             if (firstValidGPSLocationStored) {
               // Firstly, all message that are buffered so far must be stored in the database.
@@ -213,7 +217,7 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
 
             // Store start/end time stamps.
             if (0 != tripStart) {
-              int64_t tripEnd = storedKey.timeStamp();
+              int64_t tripEnd = keyTripEnd.timeStamp();
               std::cout << tripStart << " --> " << tripEnd << std::endl;
               {
                 const std::string _shortKey{"trips"};
@@ -228,15 +232,15 @@ inline bool cabinet_WGS84toTrips(const uint64_t &MEM, const std::string &CABINET
                   std::vector<char> _key;
                   const uint64_t MAXKEYSIZE = 511;
                   _key.reserve(MAXKEYSIZE);
-
                   __key.mv_size = setKey(keyTripStart, _key.data(), _key.capacity());
                   __key.mv_data = _key.data();
 
-                  // value is the end time stamp in network byte order
+                  // value is the cabinet::Key from the last key within the geofence area.
                    MDB_val __value;
-                  __value.mv_size = sizeof(int64_t);
-                  int64_t tmp2 = htobe64(tripEnd);
-                  __value.mv_data = &tmp2;
+                  std::vector<char> _value;
+                  _value.reserve(MAXKEYSIZE);
+                  __value.mv_size = setKey(keyTripEnd, _value.data(), _value.capacity());
+                  __value.mv_data = _value.data();
 
                   lmdb::dbi_put(txn, dbTrips.handle(), &__key, &__value, 0);
                 }

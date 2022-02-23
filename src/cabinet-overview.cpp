@@ -141,6 +141,11 @@ int32_t main(int32_t argc, char **argv) {
                 }
                 std::clog << "[" << argv[0] << "]: " << dataTypeName << "/" << senderStamp << " ('" << name << "'): " << mst.ms_entries << " entries" << std::endl;
               }
+              else {
+                if (s != "all") {
+                  std::clog << "[" << argv[0] << "]: '" << s << "': " << mst.ms_entries << " entries" << std::endl;
+                }
+              }
             }
             mdb_close(env, db2);
           }
