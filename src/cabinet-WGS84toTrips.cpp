@@ -20,13 +20,15 @@ int32_t main(int32_t argc, char **argv) {
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
   if ( (0 == commandlineArguments.count("cab")) || (0 == commandlineArguments.count("geofence")) ) {
     std::cerr << argv[0] << " traverse table 'all' of a cabinet (an lmdb-based key/value-database) to select only those WGS84 messages (19/?) that reside within a given geofence to be added to a Trips database." << std::endl;
-    std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab --geofence=\"57.730744,12.159515;57.717822,12.189958\" [--out=myStore.cab-WGS84-Trips] [--mem=32024] [--verbose]" << std::endl;
+    std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab --geofence=\"57.730744,12.159515;57.717822,12.189958\" [--out=myStore.cab-WGS84-Trips] [--mem=32024] [--verbose] [--min=10] [--max=100]" << std::endl;
     std::cerr << "         --cab:       name of the database file" << std::endl;
     std::cerr << "         --id:        id of the WGS84 coordinate to consider; default: 0" << std::endl;
     std::cerr << "         --out:       name of the database file to be created from the selected WGS84 locations codes" << std::endl;
     std::cerr << "         --mem:       upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
     std::cerr << "         --geofence:  polygon of WGS84 coordinates: coord1;coord2;coord3;...;coord_n; example: --geofence=\"57.730744,12.159515;57.717822,12.189958\"" << std::endl;
     std::cerr << "         --gpx:       create a .gpx track file per identified trip" << std::endl;
+    std::cerr << "         --min:       trips must be longer than x meters; default: 0" << std::endl;
+    std::cerr << "         --max:       trips must be shorter than x meters; default: inf" << std::endl;
     std::cerr << "         --verbose:   display information on stderr" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab" << std::endl;
     retCode = 1;
@@ -38,6 +40,8 @@ int32_t main(int32_t argc, char **argv) {
     const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
     const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
     const bool GPX{(commandlineArguments["gpx"].size() != 0)};
+    const uint32_t MIN_LEN{(commandlineArguments["min"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["min"])) : 0};
+    const uint32_t MAX_LEN{(commandlineArguments["max"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["max"])) : std::numeric_limits<uint32_t>::max()};
     const std::string geofence = commandlineArguments["geofence"];
 
     std::vector<std::string> listOfCoordinates = stringtoolbox::split(geofence, ';');
@@ -59,7 +63,7 @@ int32_t main(int32_t argc, char **argv) {
       }
     }
 
-    retCode = cabinet_WGS84toTrips(MEM, CABINET, ID, polygon, TRIPSCABINET, GPX, VERBOSE);
+    retCode = cabinet_WGS84toTrips(MEM, CABINET, ID, polygon, TRIPSCABINET, GPX, MIN_LEN, MAX_LEN, VERBOSE);
   }
   return retCode;
 }
