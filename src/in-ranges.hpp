@@ -30,9 +30,6 @@ class In_Ranges {
  public:
   In_Ranges() = default;
 
-  /**
-   * @param range Range to be added
-   */
   void addRange(std::pair<T, T> range) {
     std::lock_guard<std::mutex> lck(m_mutex);
     m_rangesList.push_back(range.first);
