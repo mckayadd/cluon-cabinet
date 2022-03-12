@@ -211,6 +211,10 @@ add_executable(rec2cabinet-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cp
 target_link_libraries(rec2cabinet-runner ${LIBRARIES})
 add_test(NAME rec2cabinet-runner COMMAND rec2cabinet-runner)
 
+add_executable(in-ranges-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-in-ranges.cpp ${GENERATED_HEADERS})
+target_link_libraries(in-ranges-runner ${LIBRARIES})
+add_test(NAME in-ranges-runner COMMAND in-ranges-runner)
+
 ################################################################################
 install(TARGETS rec2cabinet DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet2rec DESTINATION bin COMPONENT ${PROJECT_NAME})
