@@ -51,7 +51,7 @@ class In_Ranges {
     }
     
     const auto idx = std::lower_bound(m_rangesList.begin(), m_rangesList.end(), val) - m_rangesList.begin();
-    return ( (val == m_rangesList[idx]) ? true : ( (2 == m_rangesMap[m_rangesList[idx]]) ? true : false) );
+    return !m_rangesList.empty() && ( (val == m_rangesList[idx]) ? true : ( (2 == m_rangesMap[m_rangesList[idx]]) ? true : false) );
   }
 
  private:

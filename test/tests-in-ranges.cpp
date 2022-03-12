@@ -10,7 +10,16 @@
 
 #include "in-ranges.hpp"
 
-TEST_CASE("Test writing key") {
+TEST_CASE("Test empty ranges") {
+  cluon::In_Ranges<uint32_t> IR;
+
+  REQUIRE(!IR.isInAnyRange(1));
+  REQUIRE(!IR.isInAnyRange(2));
+  REQUIRE(!IR.isInAnyRange(7));
+  REQUIRE(!IR.isInAnyRange(10));
+}
+
+TEST_CASE("Test ranges") {
   cluon::In_Ranges<uint32_t> IR;
   IR.addRange(std::make_pair(2, 4));
   IR.addRange(std::make_pair(6, 7));
@@ -20,4 +29,19 @@ TEST_CASE("Test writing key") {
   REQUIRE(IR.isInAnyRange(2));
   REQUIRE(IR.isInAnyRange(7));
   REQUIRE(IR.isInAnyRange(10));
+}
+
+TEST_CASE("Test epochs") {
+  cluon::In_Ranges<uint64_t> IR;
+  IR.addRange(std::make_pair(1608099630322516000, 1608104277224115000));
+  IR.addRange(std::make_pair(1608108723409431000, 1608111802194196000));
+  IR.addRange(std::make_pair(1608116930379220000, 1608120077139878000));
+  IR.addRange(std::make_pair(1608178024311792000, 1608181062148791000));
+
+  REQUIRE(!IR.isInAnyRange(1));
+  REQUIRE(IR.isInAnyRange(1608099630322516000));
+  REQUIRE(IR.isInAnyRange(1608099640322516000));
+  REQUIRE(IR.isInAnyRange(1608104277224115000));
+  REQUIRE(!IR.isInAnyRange(1608104277224115001));
+  REQUIRE(IR.isInAnyRange(1608178054311792000));
 }
