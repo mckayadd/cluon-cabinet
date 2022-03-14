@@ -147,8 +147,9 @@ TEST_CASE("Test rec2cabinet") {
     rec.flush();
     rec.close();
   }
+  cluon::In_Ranges<int64_t> ranges;
   const uint64_t MEM{1};
-  REQUIRE(0 == rec2cabinet("tests-rec2cabinet", MEM, RECFILENAME, CABINETNAME, 0, VERBOSE));
+  REQUIRE(0 == rec2cabinet("tests-rec2cabinet", MEM, RECFILENAME, CABINETNAME, 0, ranges, VERBOSE));
   UNLINK(RECFILENAME.c_str());
 
   REQUIRE(0 == cabinet2rec("tests-rec2cabinet", MEM, CABINETNAME, REC2FILENAME, VERBOSE));
@@ -182,7 +183,8 @@ TEST_CASE("Test rec2cabinet with lmdb++") {
     rec.close();
   }
   const uint64_t MEM{1};
-  REQUIRE(0 == rec2cabinet("tests-rec2cabinet", MEM, RECFILENAME, CABINETNAME, 0, VERBOSE));
+  cluon::In_Ranges<int64_t> ranges;
+  REQUIRE(0 == rec2cabinet("tests-rec2cabinet", MEM, RECFILENAME, CABINETNAME, 0, ranges, VERBOSE));
   UNLINK(RECFILENAME.c_str());
 
   // Access LMDB-based database using lmdb++

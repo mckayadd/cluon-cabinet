@@ -22,13 +22,21 @@ namespace cluon {
 template <class T>
 class In_Ranges {
  private:
-  In_Ranges(const In_Ranges &) = delete;
   In_Ranges(In_Ranges &&)      = delete;
   In_Ranges &operator=(const In_Ranges &) = delete;
   In_Ranges &operator=(In_Ranges &&) = delete;
 
  public:
   In_Ranges() = default;
+  In_Ranges(const In_Ranges &o) :
+    m_mutex(),
+    m_sorted(o.m_sorted),
+    m_rangesList(o.m_rangesList),
+    m_rangesMap(o.m_rangesMap) {}
+
+  bool empty() const {
+    return m_rangesList.empty();
+  }
 
   void addRange(std::pair<T, T> range) {
     std::lock_guard<std::mutex> lck(m_mutex);

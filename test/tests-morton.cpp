@@ -218,7 +218,8 @@ TEST_CASE("Test GeodeticWge84") {
   const bool VERBOSE{true};
   const uint64_t MEM{1};
   const int64_t SIZE_DB = MEM * 1024UL * 1024UL * 1024UL;
-  REQUIRE(0 == rec2cabinet("tests-morton", MEM, RECFILE, DBFILE, 0, VERBOSE));
+  cluon::In_Ranges<int64_t> ranges;
+  REQUIRE(0 == rec2cabinet("tests-morton", MEM, RECFILE, DBFILE, 0, ranges, VERBOSE));
 
   std::string MORTONCABINET("wgs.cab.mc");
   REQUIRE(!cabinet_WGS84toMorton(MEM, DBFILE, MORTONCABINET, VERBOSE));
@@ -588,7 +589,8 @@ TEST_CASE("Range querying Morton-indexed GPS traces") {
   const bool VERBOSE{true};
   const uint64_t MEM{1};
   const int64_t SIZE_DB = MEM * 1024UL * 1024UL * 1024UL;
-  REQUIRE(0 == rec2cabinet("tests-morton", MEM, RECFILE, DBFILE, 0, VERBOSE));
+  cluon::In_Ranges<int64_t> ranges;
+  REQUIRE(0 == rec2cabinet("tests-morton", MEM, RECFILE, DBFILE, 0, ranges, VERBOSE));
 
   std::string MORTONCABINET("az.cab.mc");
   REQUIRE(!cabinet_WGS84toMorton(MEM, DBFILE, MORTONCABINET, VERBOSE));

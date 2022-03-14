@@ -12,6 +12,8 @@
 #include "cluon-complete.hpp"
 #include "key.hpp"
 #include "db.hpp"
+#include "in-ranges.hpp"
+
 #include "lmdb.h"
 #include "lz4.h"
 #include "lz4hc.h"
@@ -27,7 +29,7 @@
 #include <string>
 #include <vector>
 
-inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std::string &REC, const std::string &CABINET, const uint64_t &USERDATA, const bool &VERBOSE) {
+inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std::string &REC, const std::string &CABINET, const uint64_t &USERDATA, cluon::In_Ranges<int64_t> ranges,  const bool &VERBOSE) {
   int32_t retCode{0};
   MDB_env *env{nullptr};
   const int numberOfDatabases{100};
@@ -116,6 +118,12 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
 
             cluon::data::Envelope e{std::move(retVal.second)};
             auto sampleTimeStamp{cluon::time::toMicroseconds(e.sampleTimeStamp())};
+
+            if (!ranges.empty() && !(ranges.isInAnyRange(sampleTimeStamp * 1000UL))) {
+              // This Envelope resides temporally not within any allowed start/end range.
+              continue;
+            }
+
             // Create bytes to store in "all".
             std::string sVal{cluon::serializeEnvelope(std::move(e))};
             char *ptrToValue = const_cast<char*>(sVal.data());
