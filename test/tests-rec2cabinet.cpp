@@ -152,7 +152,7 @@ TEST_CASE("Test rec2cabinet") {
   REQUIRE(0 == rec2cabinet("tests-rec2cabinet", MEM, RECFILENAME, CABINETNAME, 0, ranges, VERBOSE));
   UNLINK(RECFILENAME.c_str());
 
-  REQUIRE(0 == cabinet2rec("tests-rec2cabinet", MEM, CABINETNAME, REC2FILENAME, VERBOSE));
+  REQUIRE(0 == cabinet2rec("tests-rec2cabinet", MEM, CABINETNAME, REC2FILENAME, 0, std::numeric_limits<int64_t>::max(), VERBOSE));
   {
     std::fstream fin{REC2FILENAME.c_str(), std::ios::in|std::ios::binary};
     if (fin.good()) {

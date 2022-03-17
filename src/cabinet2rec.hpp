@@ -26,7 +26,7 @@
 #include <iomanip>
 #include <string>
 
-inline int cabinet2rec(const std::string &ARGV0, const uint64_t &MEM, const std::string &CABINET, const std::string &REC, const bool &VERBOSE) {
+inline int cabinet2rec(const std::string &ARGV0, const uint64_t &MEM, const std::string &CABINET, const std::string &REC, const int64_t START, const int64_t END, const bool &VERBOSE) {
   int32_t retCode{0};
   MDB_env *env{nullptr};
   const int numberOfDatabases{100};
@@ -86,6 +86,28 @@ inline int cabinet2rec(const std::string &ARGV0, const uint64_t &MEM, const std:
         MDB_val key;
         MDB_val val;
 
+        // Position the cursor to the desired start time point.
+        int64_t startTimeStamp = START * 1000UL * 1000UL * 1000UL;
+        int64_t endTimeStamp = std::numeric_limits<int64_t>::max();
+        if (END < std::numeric_limits<int64_t>::max()) {
+          endTimeStamp = END * 1000UL * 1000UL * 1000UL;
+        }
+
+        if (startTimeStamp > 0) {
+          const uint64_t MAXKEYSIZE = 511;
+          std::vector<char> _key;
+          _key.reserve(MAXKEYSIZE);
+
+          cabinet::Key k;
+          k.timeStamp(startTimeStamp);
+
+          key.mv_size = setKey(k, _key.data(), _key.capacity());
+          key.mv_data = _key.data();
+          if (MDB_NOTFOUND != mdb_cursor_get(cursor, &key, &val, MDB_SET_RANGE)) {
+            std::clog << "[" << ARGV0 << "]: Positioned cursor successfully." << std::endl;
+          }
+        }
+
         while ((retCode = mdb_cursor_get(cursor, &key, &val, MDB_NEXT_NODUP)) == 0) {
           const char *ptr = static_cast<char*>(key.mv_data);
           cabinet::Key storedKey = getKey(ptr, key.mv_size);
@@ -98,6 +120,9 @@ inline int cabinet2rec(const std::string &ARGV0, const uint64_t &MEM, const std:
             if (VERBOSE) {
               XXH64_hash_t hashDecompressed = XXH64(decompressedValue.data(), decompressedSize, 0);
               std::cout << storedKey.timeStamp() << ": " << storedKey.dataType() << "/" << storedKey.senderStamp() << ", hash from original value: 0x" << std::hex << storedKey.hash() << std::dec << ", hash from decompressed value: " << std::hex << "0x" << hashDecompressed << std::dec << ", match = " << (storedKey.hash() == hashDecompressed) << ", vs = " << val.mv_size << ", ds = " << decompressedSize << std::endl;
+            }
+            if (storedKey.timeStamp() > endTimeStamp) {
+              break;
             }
             recFile.write(decompressedValue.data(), storedKey.length());
           }
