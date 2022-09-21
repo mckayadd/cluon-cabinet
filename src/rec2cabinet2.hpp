@@ -43,15 +43,131 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
     {
       auto rotxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
       try {
-        auto dbi = lmdb::dbi::open(rotxn, "all");
-        dbi.set_compare(rotxn, &compareKeys);
-        const uint64_t totalEntries = dbi.size(rotxn);
+        auto dbAll = lmdb::dbi::open(rotxn, "all");
+        dbAll.set_compare(rotxn, &compareKeys);
+        const uint64_t totalEntries = dbAll.size(rotxn);
         std::clog << "[" << ARGV0 << "]: Found " << totalEntries << " entries in table 'all' in " << CABINET << std::endl;
       }
       catch(...) {
         std::clog << "[" << ARGV0 << "]: No table 'all' found in " << CABINET << ", will be created on opening." << std::endl;
       }
     }
+
+    const XXH32_hash_t hashOfFilename = XXH32(REC.c_str(), REC.size(), 0);
+
+    const bool AUTO_REWIND{false};
+    const bool THREADING{false};
+
+    const cluon::data::TimeStamp BEFORE{cluon::time::now()};
+    cluon::Player player(REC, AUTO_REWIND, THREADING);
+    uint32_t entries{0};
+    const uint32_t totalEntries{player.totalNumberOfEnvelopesInRecFile()};
+
+    auto txn = lmdb::txn::begin(env);
+    auto dbAll = lmdb::dbi::open(txn, "all", MDB_CREATE);
+    dbAll.set_compare(txn, &compareKeys);
+
+    while (player.hasMoreData()) {
+      auto entry = player.getNextEnvelopeToBeReplayed();
+      if (entry.first) {
+        entries++;
+
+        cluon::data::Envelope e{std::move(entry.second)};
+        auto sampleTimeStamp{cluon::time::toMicroseconds(e.sampleTimeStamp())};
+
+        if (!ranges.empty() && !(ranges.isInAnyRange(sampleTimeStamp * 1000UL))) {
+          // This Envelope resides temporally not within any allowed start/end range.
+          continue;
+        }
+
+        cabinet::Key k;
+        k.dataType(e.dataType())
+          .senderStamp(e.senderStamp())
+          .hashOfRecFile(hashOfFilename)
+          .userData(USERDATA)
+          .version(0);
+
+        // Create bytes to store in "all".
+        std::string sVal{cluon::serializeEnvelope(std::move(e))};
+        char *ptrToValue = const_cast<char*>(sVal.data());
+        ssize_t lengthOfValue = sVal.size();
+
+        XXH64_hash_t hash = XXH64(sVal.data(), sVal.size(), 0);
+        k.hash(hash)
+         .length(sVal.size());
+
+        // Compress value via lz4.
+        std::vector<char> compressedValue;
+        ssize_t compressedSize{0};
+        {
+          ssize_t expectedCompressedSize = LZ4_compressBound(sVal.size());
+          compressedValue.reserve(expectedCompressedSize);
+          //compressedSize = LZ4_compress_default(sVal.data(), compressedValue.data(), sVal.size(), compressedValue.capacity());
+          compressedSize = LZ4_compress_HC(sVal.data(), compressedValue.data(), sVal.size(), compressedValue.capacity(), LZ4HC_CLEVEL_MAX);
+          if (VERBOSE) {
+            std::clog << "lz4 actual size: " << compressedSize << std::endl;
+          }
+          if ( (compressedSize > 0) && (compressedSize < lengthOfValue) ) {
+            ptrToValue = compressedValue.data();
+            lengthOfValue = compressedSize;
+          }
+        }
+
+        std::vector<char> _key;
+        _key.reserve(MAXKEYSIZE);
+
+        MDB_val key;
+        MDB_val value;
+        int64_t sampleTimeStampOffsetToAvoidCollision{0};
+        do {
+          k.timeStamp(sampleTimeStamp * 1000UL + sampleTimeStampOffsetToAvoidCollision);
+
+          key.mv_size = setKey(k, _key.data(), _key.capacity());
+          key.mv_data = _key.data();
+
+          value.mv_size = lengthOfValue;
+          value.mv_data = ptrToValue;
+
+#if 0
+          // Check for duplicated entries.
+          {
+            bool duplicate{false};
+            MDB_cursor *cursor{nullptr};
+            if (MDB_SUCCESS == mdb_cursor_open(txn, dbAll, &cursor)) {
+              // Check if the key exists; if so, retrieve the key and check hash to skip duplicated data.
+              MDB_val tmpKey = key;
+              MDB_val tmpVal;
+              if (MDB_SUCCESS == mdb_cursor_get(cursor, &tmpKey, &tmpVal, MDB_SET_KEY)) {
+                // Extract xxhash from found key and compare with calculated key to maybe skip adding this value.
+                const char *ptr = static_cast<char*>(tmpKey.mv_data);
+                cabinet::Key storedKey = getKey(ptr, tmpKey.mv_size);
+                duplicate = (hash == storedKey.hash());
+                if (VERBOSE) {
+                  std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec << ", is duplicate = " << duplicate << std::endl;
+                }
+              }
+            }
+            mdb_cursor_close(cursor);
+            if (duplicate) {
+              // value is existing, skip storing
+              retCode = 0;
+              break;
+            }
+          }
+#endif
+         
+          // Try next slot if already taken.
+          sampleTimeStampOffsetToAvoidCollision++;
+        } while ( MDB_KEYEXIST == (retCode = lmdb::dbi_put(txn, dbAll, &key, &value, MDB_NOOVERWRITE)) );
+
+      }
+    }
+
+    txn.commit();
+
+    const cluon::data::TimeStamp AFTER{cluon::time::now()};
+    std::clog << "[" << ARGV0 << "]: Processed 100% (" << entries << " entries) from " << REC
+              << " in " << cluon::time::deltaInMicroseconds(AFTER, BEFORE) / static_cast<int64_t>(1000 * 1000) << "s." << std::endl;
   }
   catch(...) {
     retCode = 1;
@@ -59,32 +175,6 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
 
   return retCode;
 #if 0
-  auto printNumberOfEntries = [argv0=ARGV0, CABINET, &env, checkErrorCode]() {
-    MDB_txn *txn{nullptr};
-    MDB_dbi dbi{0};
-    if (!checkErrorCode(mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn), __LINE__, "mdb_txn_begin")) {
-      mdb_env_close(env);
-      return 1;
-    }
-    if (MDB_NOTFOUND  == mdb_dbi_open(txn, "all", 0/*no flags*/, &dbi)) {
-      std::clog << "[" << argv0 << "]: No table 'all' found in " << CABINET << ", will be created on opening." << std::endl;
-    }
-    else {
-      uint64_t numberOfEntries{0};
-      MDB_stat stat;
-      if (!mdb_stat(txn, dbi, &stat)) {
-        numberOfEntries = stat.ms_entries;
-      }
-      std::clog << "[" << argv0 << "]: Found " << numberOfEntries << " entries in table 'all' in " << CABINET << std::endl;
-    }
-    mdb_txn_abort(txn);
-    if (dbi) {
-      mdb_dbi_close(env, dbi);
-    }
-    return 0;
-  };
-
-  printNumberOfEntries();
 
   // Iterate through .rec file and fill database.
   {
