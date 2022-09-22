@@ -622,6 +622,7 @@ namespace lmdb {
   static inline void dbi_set_relctx(MDB_txn* txn, MDB_dbi dbi, void* ctx);
   static inline bool dbi_get(MDB_txn* txn, MDB_dbi dbi, const MDB_val* key, MDB_val* data);
   static inline bool dbi_put(MDB_txn* txn, MDB_dbi dbi, const MDB_val* key, MDB_val* data, unsigned int flags);
+  static inline int dbi_put2(MDB_txn* txn, MDB_dbi dbi, const MDB_val* key, MDB_val* data, unsigned int flags);
   static inline bool dbi_del(MDB_txn* txn, MDB_dbi dbi, const MDB_val* key, const MDB_val* data);
   // TODO: mdb_cmp()
   // TODO: mdb_dcmp()
@@ -776,11 +777,25 @@ lmdb::dbi_put(MDB_txn* const txn,
               const MDB_val* const key,
               MDB_val* const data,
               const unsigned int flags = 0) {
+  int rc = lmdb::dbi_put2(txn, dbi, key, data, flags);
+  return (rc == MDB_SUCCESS);
+}
+
+/**
+ * @retval MDB return code (MDB_SUCCESS or MDB_KEYEXIST), exception on error.
+ * @see http://symas.com/mdb/doc/group__mdb.html#ga4fa8573d9236d54687c61827ebf8cac0
+ */
+static inline int
+lmdb::dbi_put2(MDB_txn* const txn,
+              const MDB_dbi dbi,
+              const MDB_val* const key,
+              MDB_val* const data,
+              const unsigned int flags = 0) {
   const int rc = ::mdb_put(txn, dbi, const_cast<MDB_val*>(key), data, flags);
   if (rc != MDB_SUCCESS && rc != MDB_KEYEXIST) {
     error::raise("mdb_put", rc);
   }
-  return (rc == MDB_SUCCESS);
+  return rc;
 }
 
 /**

@@ -47,123 +47,143 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
         dbAll.set_compare(rotxn, &compareKeys);
         const uint64_t totalEntries = dbAll.size(rotxn);
         std::clog << "[" << ARGV0 << "]: Found " << totalEntries << " entries in table 'all' in " << CABINET << std::endl;
+        lmdb::dbi_close(env, dbAll);
       }
       catch(...) {
         std::clog << "[" << ARGV0 << "]: No table 'all' found in " << CABINET << ", will be created on opening." << std::endl;
       }
+      rotxn.abort();
     }
 
     const XXH32_hash_t hashOfFilename = XXH32(REC.c_str(), REC.size(), 0);
 
-    const bool AUTO_REWIND{false};
-    const bool THREADING{false};
-
     const cluon::data::TimeStamp BEFORE{cluon::time::now()};
-    cluon::Player player(REC, AUTO_REWIND, THREADING);
     uint32_t entries{0};
-    const uint32_t totalEntries{player.totalNumberOfEnvelopesInRecFile()};
+    std::fstream recFile;
+    recFile.open(REC.c_str(), std::ios_base::in | std::ios_base::binary);
 
-    auto txn = lmdb::txn::begin(env);
-    auto dbAll = lmdb::dbi::open(txn, "all", MDB_CREATE);
-    dbAll.set_compare(txn, &compareKeys);
+    if (recFile.good()) {
+      auto txn = lmdb::txn::begin(env);
+      auto dbAll = lmdb::dbi::open(txn, "all", MDB_CREATE);
+      dbAll.set_compare(txn, &compareKeys);
 
-    while (player.hasMoreData()) {
-      auto entry = player.getNextEnvelopeToBeReplayed();
-      if (entry.first) {
-        entries++;
+      uint64_t totalBytesRead = 0;
+      // Determine file size to display progress.
+      recFile.seekg(0, recFile.end);
+      int64_t fileLength = recFile.tellg();
+      recFile.seekg(0, recFile.beg);
 
-        cluon::data::Envelope e{std::move(entry.second)};
-        auto sampleTimeStamp{cluon::time::toMicroseconds(e.sampleTimeStamp())};
+      int32_t oldPercentage{-1};
+      while (recFile.good()) {
+        const uint64_t POS_BEFORE = static_cast<uint64_t>(recFile.tellg());
+        auto retVal               = cluon::extractEnvelope(recFile);
+        const uint64_t POS_AFTER  = static_cast<uint64_t>(recFile.tellg());
 
-        if (!ranges.empty() && !(ranges.isInAnyRange(sampleTimeStamp * 1000UL))) {
-          // This Envelope resides temporally not within any allowed start/end range.
-          continue;
-        }
+        if (!recFile.eof() && retVal.first) {
+          totalBytesRead += (POS_AFTER - POS_BEFORE);
 
-        cabinet::Key k;
-        k.dataType(e.dataType())
-          .senderStamp(e.senderStamp())
-          .hashOfRecFile(hashOfFilename)
-          .userData(USERDATA)
-          .version(0);
+          cluon::data::Envelope e{std::move(retVal.second)};
+          auto sampleTimeStamp{cluon::time::toMicroseconds(e.sampleTimeStamp())};
 
-        // Create bytes to store in "all".
-        std::string sVal{cluon::serializeEnvelope(std::move(e))};
-        char *ptrToValue = const_cast<char*>(sVal.data());
-        ssize_t lengthOfValue = sVal.size();
-
-        XXH64_hash_t hash = XXH64(sVal.data(), sVal.size(), 0);
-        k.hash(hash)
-         .length(sVal.size());
-
-        // Compress value via lz4.
-        std::vector<char> compressedValue;
-        ssize_t compressedSize{0};
-        {
-          ssize_t expectedCompressedSize = LZ4_compressBound(sVal.size());
-          compressedValue.reserve(expectedCompressedSize);
-          //compressedSize = LZ4_compress_default(sVal.data(), compressedValue.data(), sVal.size(), compressedValue.capacity());
-          compressedSize = LZ4_compress_HC(sVal.data(), compressedValue.data(), sVal.size(), compressedValue.capacity(), LZ4HC_CLEVEL_MAX);
-          if (VERBOSE) {
-            std::clog << "lz4 actual size: " << compressedSize << std::endl;
+          if (!ranges.empty() && !(ranges.isInAnyRange(sampleTimeStamp * 1000UL))) {
+            // This Envelope resides temporally not within any allowed start/end range.
+            continue;
           }
-          if ( (compressedSize > 0) && (compressedSize < lengthOfValue) ) {
-            ptrToValue = compressedValue.data();
-            lengthOfValue = compressedSize;
-          }
-        }
 
-        std::vector<char> _key;
-        _key.reserve(MAXKEYSIZE);
+          cabinet::Key k;
+          k.dataType(e.dataType())
+           .senderStamp(e.senderStamp())
+           .hashOfRecFile(hashOfFilename)
+           .userData(USERDATA)
+           .version(0);
 
-        MDB_val key;
-        MDB_val value;
-        int64_t sampleTimeStampOffsetToAvoidCollision{0};
-        do {
-          k.timeStamp(sampleTimeStamp * 1000UL + sampleTimeStampOffsetToAvoidCollision);
+          // Create bytes to store in "all".
+          std::string sVal{cluon::serializeEnvelope(std::move(e))};
+          char *ptrToValue = const_cast<char*>(sVal.data());
+          ssize_t lengthOfValue = sVal.size();
 
-          key.mv_size = setKey(k, _key.data(), _key.capacity());
-          key.mv_data = _key.data();
+          XXH64_hash_t hash = XXH64(sVal.data(), sVal.size(), 0);
+          k.hash(hash)
+           .length(sVal.size());
 
-          value.mv_size = lengthOfValue;
-          value.mv_data = ptrToValue;
-
-#if 0
-          // Check for duplicated entries.
+          // Compress value via lz4.
+          std::vector<char> compressedValue;
+          ssize_t compressedSize{0};
           {
-            bool duplicate{false};
-            MDB_cursor *cursor{nullptr};
-            if (MDB_SUCCESS == mdb_cursor_open(txn, dbAll, &cursor)) {
-              // Check if the key exists; if so, retrieve the key and check hash to skip duplicated data.
-              MDB_val tmpKey = key;
-              MDB_val tmpVal;
-              if (MDB_SUCCESS == mdb_cursor_get(cursor, &tmpKey, &tmpVal, MDB_SET_KEY)) {
-                // Extract xxhash from found key and compare with calculated key to maybe skip adding this value.
-                const char *ptr = static_cast<char*>(tmpKey.mv_data);
-                cabinet::Key storedKey = getKey(ptr, tmpKey.mv_size);
-                duplicate = (hash == storedKey.hash());
-                if (VERBOSE) {
-                  std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec << ", is duplicate = " << duplicate << std::endl;
+            ssize_t expectedCompressedSize = LZ4_compressBound(sVal.size());
+            compressedValue.reserve(expectedCompressedSize);
+            compressedSize = LZ4_compress_HC(sVal.data(), compressedValue.data(), sVal.size(), compressedValue.capacity(), LZ4HC_CLEVEL_MAX);
+            if ( (compressedSize > 0) && (compressedSize < lengthOfValue) ) {
+              ptrToValue = compressedValue.data();
+              lengthOfValue = compressedSize;
+            }
+          }
+
+          std::vector<char> _key;
+          _key.reserve(MAXKEYSIZE);
+
+          MDB_val key;
+          MDB_val value;
+          int64_t sampleTimeStampOffsetToAvoidCollision{0};
+          bool duplicate{false};
+          do {
+            k.timeStamp(sampleTimeStamp * 1000UL + sampleTimeStampOffsetToAvoidCollision);
+
+            key.mv_size = setKey(k, _key.data(), _key.capacity());
+            key.mv_data = _key.data();
+
+            value.mv_size = lengthOfValue;
+            value.mv_data = ptrToValue;
+
+            // Check for duplicated entries.
+            {
+              try {
+                duplicate = false;
+                auto _rotxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
+                auto _dbAll = lmdb::dbi::open(_rotxn, "all");
+                auto _cursor = lmdb::cursor::open(_rotxn, _dbAll);
+                MDB_val tmpKey = key;
+                MDB_val tmpVal;
+                if (MDB_SUCCESS == _cursor.get(&tmpKey, &tmpVal, MDB_SET_KEY)) {
+                //if (MDB_SUCCESS == mdb_cursor_get(_cursor, &tmpKey, &tmpVal, MDB_SET_KEY)) {
+                  // Extract xxhash from found key and compare with calculated key to maybe skip adding this value.
+                  const char *ptr = static_cast<char*>(tmpKey.mv_data);
+                  cabinet::Key storedKey = getKey(ptr, tmpKey.mv_size);
+                  duplicate = (hash == storedKey.hash());
+                  if (VERBOSE) {
+                    std::cerr << std::hex << "hash-to-store: 0x" << hash << ", hash-stored: 0x" << storedKey.hash() << std::dec << ", is duplicate = " << duplicate << std::endl;
+                  }
+                }
+                _cursor.close();
+                lmdb::dbi_close(env, _dbAll);
+                _rotxn.abort();
+                if (duplicate) {
+                  // value is existing, skip storing
+                  retCode = 0;
+                  break;
                 }
               }
+              catch(...) {
+              }
             }
-            mdb_cursor_close(cursor);
-            if (duplicate) {
-              // value is existing, skip storing
-              retCode = 0;
-              break;
-            }
+
+            // Try next slot if already taken.
+            sampleTimeStampOffsetToAvoidCollision++;
+          } while ( MDB_KEYEXIST == (retCode = lmdb::dbi_put2(txn, dbAll, &key, &value, MDB_NOOVERWRITE)) );
+          if (MDB_SUCCESS == retCode) {
+            entries++;
           }
-#endif
-         
-          // Try next slot if already taken.
-          sampleTimeStampOffsetToAvoidCollision++;
-        } while ( MDB_KEYEXIST == (retCode = lmdb::dbi_put(txn, dbAll, &key, &value, MDB_NOOVERWRITE)) );
 
+          const int32_t percentage = static_cast<int32_t>((static_cast<float>(recFile.tellg()) * 100.0f) / static_cast<float>(fileLength));
+          if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
+            std::clog << "[" << ARGV0 << "]: Processed " << percentage << "% (" << entries << " entries) from " << REC << std::endl;
+            oldPercentage = percentage;
+          }
+        }
       }
-    }
 
-    txn.commit();
+      txn.commit();
+    }
 
     const cluon::data::TimeStamp AFTER{cluon::time::now()};
     std::clog << "[" << ARGV0 << "]: Processed 100% (" << entries << " entries) from " << REC
