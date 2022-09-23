@@ -87,6 +87,9 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
 
           if (!ranges.empty() && !(ranges.isInAnyRange(sampleTimeStamp * 1000UL))) {
             // This Envelope resides temporally not within any allowed start/end range.
+            if (VERBOSE) {
+              std::cerr << "not in range: " << sampleTimeStamp << std::endl;
+            }
             continue;
           }
 
@@ -140,13 +143,13 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
               try {
                 duplicate = false;
                 auto _rotxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
-                auto _dbAll = lmdb::dbi::open(_rotxn, "all");
-                _dbAll.set_compare(txn, &compareKeys);
-                auto _cursor = lmdb::cursor::open(_rotxn, _dbAll);
+                //auto _dbAll = lmdb::dbi::open(_rotxn, "all");
+                //_dbAll.set_compare(txn, &compareKeys);
+                auto _cursor = lmdb::cursor::open(_rotxn, dbAll);
                 MDB_val tmpKey = key;
                 MDB_val tmpVal;
-                if (MDB_SUCCESS == _cursor.get(&tmpKey, &tmpVal, MDB_SET_KEY)) {
-                //if (MDB_SUCCESS == mdb_cursor_get(_cursor, &tmpKey, &tmpVal, MDB_SET_KEY)) {
+                //if (MDB_SUCCESS == _cursor.get(&tmpKey, &tmpVal, MDB_SET_KEY)) {
+                if (MDB_SUCCESS == mdb_cursor_get(_cursor, &tmpKey, &tmpVal, MDB_SET_KEY)) {
                   // Extract xxhash from found key and compare with calculated key to maybe skip adding this value.
                   const char *ptr = static_cast<char*>(tmpKey.mv_data);
                   cabinet::Key storedKey = getKey(ptr, tmpKey.mv_size);
@@ -156,7 +159,7 @@ inline int rec2cabinet(const std::string &ARGV0, const uint64_t &MEM, const std:
                   }
                 }
                 _cursor.close();
-                lmdb::dbi_close(env, _dbAll);
+                //lmdb::dbi_close(env, _dbAll);
                 _rotxn.abort();
                 if (duplicate) {
                   // value is existing, skip storing
