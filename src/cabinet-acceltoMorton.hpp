@@ -43,7 +43,7 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
     std::cerr << "Found " << dbiAll.size(rotxn) << " entries." << std::endl;
 
     //auto dbi = APLX ? lmdb::dbi::open(rotxn, "533/0") : lmdb::dbi::open(rotxn, "1030/0");
-    auto dbi = lmdb::dbi::open(rotxn, "1030/0");
+    auto dbi = lmdb::dbi::open(rotxn, "1030/2");
     dbi.set_compare(rotxn, &compareKeys);
     const uint64_t totalEntries = dbi.size(rotxn);
     std::cerr << "Found " << totalEntries << " entries." << std::endl;
@@ -52,7 +52,7 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
 
     auto txn = lmdb::txn::begin(envout);
     //auto dbAccelSenderStamp = APLX ? lmdb::dbi::open(txn, "533/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED ) : lmdb::dbi::open(txn, "1030/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
-    auto dbAccelSenderStamp = lmdb::dbi::open(txn, "1030/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
+    auto dbAccelSenderStamp = lmdb::dbi::open(txn, "1030/2-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
     dbAccelSenderStamp.set_compare(txn, &compareMortonKeys);
     lmdb::dbi_set_dupsort(txn, dbAccelSenderStamp.handle(), &compareKeys);
 
