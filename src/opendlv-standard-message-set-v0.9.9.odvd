@@ -397,6 +397,32 @@ message opendlv.logic.cognition.GroundSpeedLimit [id = 1192] {
 // Specification is available with libposlv:
 // https://github.com/jmaye/libposlv/blob/master/doc/PUBS-ICD-000036.pdf
 
+message opendlv.device.gps.pos.TimeDistance [id = 532] {
+/*
+    enum TimeType {
+        TIMETYPE_POS                    = 0,
+        TIMETYPE_GPS                    = 1,
+        TIMETYPE_UTC                    = 2,
+        TIMETYPE_USER                   = 3,
+    };
+
+    enum DistanceType {
+        DISTANCETYPE_NA                 = 0,
+        DISTANCETYPE_POS                = 1,
+        DISTANCETYPE_DMI                = 2,
+    };
+*/
+    double time1                        [id = 1];
+    double time2                        [id = 2];
+    double distanceTag                  [id = 3];
+    uint8 time1Type                     [id = 4];
+    uint8 time2Type                     [id = 5];
+/*
+    TimeType time1Type                  [id = 6];
+    TimeType time2Type                  [id = 7];
+    DistanceType distanceType           [id = 8];
+*/
+}
 
 message opendlv.device.gps.pos.Grp1Data [id = 533] {
     double lat                          [id = 2];
@@ -421,4 +447,78 @@ message opendlv.device.gps.pos.Grp1Data [id = 533] {
     opendlv.device.gps.pos.TimeDistance timeDistance [id = 23];
 }
 
+message opendlv.device.gps.pos.Grp2Data [id = 535] {
+    opendlv.device.gps.pos.TimeDistance timeDistance [id = 1];
+    float northposrms                   [id = 2];
+    float eastposrms                    [id = 3];
+    float downposrms                    [id = 4];
+    float northvelrms                   [id = 5];
+    float eastvelrms                    [id = 6];
+    float downvelrms                    [id = 7];
+    float rollrms                       [id = 8];
+    float pitchrms                      [id = 9];
+    float headingrms                    [id = 10];
+    float ellipsoidmajor                [id = 11];
+    float ellipsoidminor                [id = 12];
+    float ellipsoidorientation          [id = 13];
+}
 
+message opendlv.device.gps.pos.GNSSReceiverChannelStatus [id = 536] {
+    uint16 SV_PRN                       [id = 1];
+    uint16 channel_tracking_status      [id = 2];
+    float SV_azimuth                    [id = 3];
+    float SV_elevation                  [id = 4];
+    float SV_L1_SNR                     [id = 5];
+    float SV_L2_SNR                     [id = 6];
+}
+
+message opendlv.device.gps.pos.Grp3Data [id = 537] {
+    opendlv.device.gps.pos.TimeDistance timeDistance [id = 1];
+    int8 navigation_solution_status     [id = 2];
+    uint8 number_sv_tracked             [id = 3];
+    uint16 channel_status_byte_count    [id = 4];
+//    list<opendlv.device.gps.pos.GNSSReceiverChannelStatus> channel_status [id = 5];
+    float HDOP                          [id = 6];
+    float VDOP                          [id = 7];
+    float DGPS_correction_latency       [id = 8];
+    uint16 DGPS_reference_ID            [id = 9];
+    uint32 UTC_week_number              [id = 10];
+    double UTC_time_offset              [id = 11];
+    float GNSS_navigation_latency       [id = 12];
+    float geoidal_separation            [id = 13];
+    uint16 GNSS_receiver_type           [id = 14];
+    uint32 GNSS_status                  [id = 15];
+}
+
+message opendlv.device.gps.pos.Grp4Data [id = 538] {
+    opendlv.device.gps.pos.TimeDistance timeDistance [id = 1];
+    bytes imudata                       [id = 2];
+    uint8 datastatus                    [id = 3];
+    uint8 imutype                       [id = 4];
+    uint8 imurate                       [id = 5];
+    uint16 imustatus                    [id = 6];
+}
+
+message opendlv.device.gps.pos.Grp10001Data [id = 539] {
+    opendlv.device.gps.pos.TimeDistance timeDistance [id = 1];
+    uint16 GNSS_receiver_type           [id = 2];
+    bytes GNSS_receiver_raw_data        [id = 3];
+}
+
+message opendlv.device.gps.pos.Grp10002Data [id = 540] {
+    opendlv.device.gps.pos.TimeDistance timeDistance [id = 1];
+    string imuheader                    [id = 2];
+    bytes imu_raw_data                  [id = 3];
+    uint16 datachecksum                 [id = 4];
+}
+
+message opendlv.device.gps.pos.Grp10003Data [id = 541] {
+    opendlv.device.gps.pos.TimeDistance timeDistance [id = 1];
+    uint32 pulsecount                   [id = 2];
+}
+
+message opendlv.device.gps.pos.Grp10009Data [id = 542] {
+    opendlv.device.gps.pos.TimeDistance timeDistance [id = 1];
+    uint16 GNSS_receiver_type           [id = 2];
+    bytes GNSS_receiver_raw_data        [id = 3];
+}

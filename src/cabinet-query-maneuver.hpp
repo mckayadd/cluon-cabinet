@@ -9,13 +9,16 @@
 #ifndef CABINETQUERYACCELFROMMORTON_HPP
 #define CABINETQUERYACCELFROMMORTON_HPP
 
+#include "cluon-complete.hpp"
+#include "key.hpp"
+#include "db.hpp"
+#include "lmdb.h"
 #include "morton.hpp"
-
+#include "opendlv-standard-message-set.hpp"
 
 #include <iostream>
 #include <sstream>
 #include <string>
-
 
 inline int32_t identifyRelevantMortonBins(const std::pair<float,float> &BoxBL, const std::pair<float,float> &BoxTR) {
   int32_t retCode{0};
