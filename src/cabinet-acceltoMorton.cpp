@@ -22,6 +22,7 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "         --cab:     name of the database file" << std::endl;
     std::cerr << "         --out:     name of the database file to be created from the converted Morton codes" << std::endl;
     std::cerr << "         --mem:     upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
+    std::cerr << "         --aplx:    whether Applenix data is required (e.g. Snowfox) or not (e.g. Voyager); default: not" << std::endl;
     std::cerr << "         --verbose: display information on stderr" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab" << std::endl;
     retCode = 1;
@@ -29,9 +30,10 @@ int32_t main(int32_t argc, char **argv) {
     const std::string CABINET{commandlineArguments["cab"]};
     const std::string MORTONCABINET{(commandlineArguments["out"].size() != 0) ? commandlineArguments["out"] : CABINET + "-accel-Morton"};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
+    const bool APLX{(commandlineArguments["aplx"].size() != 0)};
     const bool VERBOSE{(commandlineArguments["verbose"].size() != 0)};
 
-    retCode = cabinet_acceltoMorton(MEM, CABINET, MORTONCABINET, VERBOSE);
+    retCode = cabinet_acceltoMorton(MEM, CABINET, MORTONCABINET, APLX, VERBOSE);
   }
   return retCode;
 }
