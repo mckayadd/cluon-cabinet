@@ -70,7 +70,7 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
       if (lmdb::dbi_get(rotxn, dbiAll, &keyAll, &valueAll)) {
         const char *ptr = static_cast<char*>(keyAll.mv_data);
         cabinet::Key storedKey = getKey(ptr, keyAll.mv_size);
-        if (storedKey.dataType() == opendlv::proxy::AccelerationReading:ID()) {
+        if (storedKey.dataType() == opendlv::proxy::AccelerationReading::ID()) {
           std::vector<char> val;
           val.reserve(storedKey.length());
           if (storedKey.length() > valueAll.mv_size) {
