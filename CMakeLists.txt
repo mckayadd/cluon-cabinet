@@ -194,11 +194,17 @@ target_link_libraries(cabinet-overview ${LIBRARIES})
 add_executable(cabinet-WGS84toMorton ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-WGS84toMorton.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-WGS84toMorton ${LIBRARIES})
 
+add_executable(cabinet-acceltoMorton ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-acceltoMorton.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
+target_link_libraries(cabinet-acceltoMorton ${LIBRARIES})
+
 add_executable(cabinet-WGS84toTrips ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-WGS84toTrips.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-WGS84toTrips ${LIBRARIES})
 
 add_executable(cabinet-query ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-query.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-query ${LIBRARIES})
+
+add_executable(cabinet-query-maneuver ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-query-maneuver.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
+target_link_libraries(cabinet-query-maneuver ${LIBRARIES})
 
 add_executable(cabinet-DumpTrips ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-DumpTrips.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-DumpTrips ${LIBRARIES})
@@ -233,6 +239,8 @@ install(TARGETS cabinet-stream DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-ls DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-overview DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-WGS84toMorton DESTINATION bin COMPONENT ${PROJECT_NAME})
+install(TARGETS cabinet-acceltoMorton DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-WGS84toTrips DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-query DESTINATION bin COMPONENT ${PROJECT_NAME})
+install(TARGETS cabinet-query-maneuver DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-DumpTrips DESTINATION bin COMPONENT ${PROJECT_NAME})

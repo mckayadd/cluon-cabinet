@@ -87,5 +87,19 @@ inline std::pair<float,float> convertMortonToLatLon(uint64_t code) {
   return std::make_pair(_lat, _lon);
 }
 
+inline uint64_t convertAccelLonTransToMorton(const std::pair<float,float> &accelPair) {
+  const uint32_t _accelLon = std::lroundf((accelPair.first + 10.0f) * 100);
+  const uint32_t _accelTrans = std::lround((accelPair.second + 10.0f) * 100);
+  const auto _tmp = std::make_pair(_accelLon, _accelTrans);
+  return mortonEncode(_tmp);
+}
+
+inline std::pair<float,float> convertMortonToAccelLonTrans(uint64_t code) {
+  auto tmp = mortonDecode(code);
+  const float _accelLon = tmp.first/100.0f - 10.0f;
+  const float _accelTrans = tmp.second/100.0f - 10.0f;
+  return std::make_pair(_accelLon, _accelTrans);
+}
+
 
 #endif
