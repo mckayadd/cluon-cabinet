@@ -70,7 +70,7 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
       if (lmdb::dbi_get(rotxn, dbiAll, &keyAll, &valueAll)) {
         const char *ptr = static_cast<char*>(keyAll.mv_data);
         cabinet::Key storedKey = getKey(ptr, keyAll.mv_size);
-        if (storedKey.dataType() == opendlv::device::gps::pos::Grp1Data::ID()) {
+        if (storedKey.dataType() == opendlv::proxy::AccelerationReading:ID()) {
           std::vector<char> val;
           val.reserve(storedKey.length());
           if (storedKey.length() > valueAll.mv_size) {
@@ -85,22 +85,22 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
           auto e = cluon::extractEnvelope(sstr);
           if (e.first && e.second.senderStamp() == 0) {
             // Compose name for database.
-            std::stringstream _dataType_senderStamp;
-            _dataType_senderStamp << _ID << '/'<< e.second.senderStamp() << "-morton";
-            const std::string _shortKey{_dataType_senderStamp.str()};
+            //std::stringstream _dataType_senderStamp;
+            //_dataType_senderStamp << _ID << '/'<< e.second.senderStamp() << "-morton";
+            //const std::string _shortKey{_dataType_senderStamp.str()};
 
             // Extract value from Envelope and compute Morton code.
             //const auto tmp = APLX ? cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second)) : cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
             const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
             //auto morton = APLX ? convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans())) : convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationX()));
-            auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationX()));
+            auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationY()));
             //auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans()));
             //if (VERBOSE && APLX) {
             //  std::cerr << tmp.accel_lon() << ", " << tmp.accel_trans() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
             //}
             if (VERBOSE)
             {
-              std::cerr << tmp.accelerationX() << ", " << tmp.accelerationX() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
+              std::cerr << tmp.accelerationX() << ", " << tmp.accelerationY() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
             }
             
 
@@ -137,6 +137,7 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
         oldPercentage = percentage;
       }
     }
+    txn.commit();
     cursor.close();
     rotxn.abort();
   }
