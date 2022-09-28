@@ -80,9 +80,11 @@ int32_t main(int32_t argc, char **argv) {
         mdb_env_close(env);
         return (retCode = 1);
       }
-      retCode = mdb_dbi_open(txn, "533/0-morton", 0 , &dbi);
+      //retCode = mdb_dbi_open(txn, "533/0-morton", 0 , &dbi);
+      retCode = mdb_dbi_open(txn, "1030/0-morton", 0 , &dbi);
       if (MDB_NOTFOUND  == retCode) {
-        std::clog << "[" << argv[0] << "]: No database '533/0-morton' found in " << CABINET << "." << std::endl;
+        //std::clog << "[" << argv[0] << "]: No database '533/0-morton' found in " << CABINET << "." << std::endl;
+        std::clog << "[" << argv[0] << "]: No database '1030/0-morton' found in " << CABINET << "." << std::endl;
       }
       else {
         mdb_set_compare(txn, dbi, &compareMortonKeys);
@@ -94,7 +96,8 @@ int32_t main(int32_t argc, char **argv) {
         if (!mdb_stat(txn, dbi, &stat)) {
           numberOfEntries = stat.ms_entries;
         }
-        std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '533/0-morton' in " << CABINET << std::endl;
+        //std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '533/0-morton' in " << CABINET << std::endl;
+        std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '1030/0-morton' in " << CABINET << std::endl;
 
         uint64_t bl_morton = 0;
         uint64_t tr_morton = 0;

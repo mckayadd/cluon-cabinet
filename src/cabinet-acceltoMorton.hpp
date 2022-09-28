@@ -24,7 +24,8 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
   bool failed{false};
   try {
 
-    uint16_t _ID = APLX ? opendlv::device::gps::pos::Grp1Data::ID() : opendlv::proxy::AccelerationReading::ID();
+    //uint16_t _ID = APLX ? opendlv::device::gps::pos::Grp1Data::ID() : opendlv::proxy::AccelerationReading::ID();
+    uint16_t _ID = opendlv::proxy::AccelerationReading::ID();
     auto env = lmdb::env::create();
     env.set_mapsize(MEM/2 * 1024UL * 1024UL * 1024UL);
     env.set_max_dbs(100);
@@ -41,7 +42,8 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
     dbiAll.set_compare(rotxn, &compareKeys);
     std::cerr << "Found " << dbiAll.size(rotxn) << " entries." << std::endl;
 
-    auto dbi = APLX ? lmdb::dbi::open(rotxn, "533/0") : lmdb::dbi::open(rotxn, "1030/0");
+    //auto dbi = APLX ? lmdb::dbi::open(rotxn, "533/0") : lmdb::dbi::open(rotxn, "1030/0");
+    auto dbi = lmdb::dbi::open(rotxn, "1030/0");
     dbi.set_compare(rotxn, &compareKeys);
     const uint64_t totalEntries = dbi.size(rotxn);
     std::cerr << "Found " << totalEntries << " entries." << std::endl;
@@ -49,7 +51,8 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
     auto cursor = lmdb::cursor::open(rotxn, dbi);
 
     auto txn = lmdb::txn::begin(envout);
-    auto dbAccelSenderStamp = APLX ? lmdb::dbi::open(txn, "533/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED ) : lmdb::dbi::open(txn, "1030/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
+    //auto dbAccelSenderStamp = APLX ? lmdb::dbi::open(txn, "533/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED ) : lmdb::dbi::open(txn, "1030/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
+    auto dbAccelSenderStamp = lmdb::dbi::open(txn, "1030/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
     dbAccelSenderStamp.set_compare(txn, &compareMortonKeys);
     lmdb::dbi_set_dupsort(txn, dbAccelSenderStamp.handle(), &compareKeys);
 
@@ -87,13 +90,15 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
             const std::string _shortKey{_dataType_senderStamp.str()};
 
             // Extract value from Envelope and compute Morton code.
-            const auto tmp = APLX ? cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second)) : cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
-            auto morton = APLX ? convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans())) : convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationX()));
+            //const auto tmp = APLX ? cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second)) : cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
+            const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
+            //auto morton = APLX ? convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans())) : convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationX()));
+            auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationX()));
             //auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans()));
-            if (VERBOSE && APLX) {
-              std::cerr << tmp.accel_lon() << ", " << tmp.accel_trans() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
-            }
-            if (VERBOSE && !APLX)
+            //if (VERBOSE && APLX) {
+            //  std::cerr << tmp.accel_lon() << ", " << tmp.accel_trans() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
+            //}
+            if (VERBOSE)
             {
               std::cerr << tmp.accelerationX() << ", " << tmp.accelerationX() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
             }
