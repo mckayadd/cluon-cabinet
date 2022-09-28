@@ -114,6 +114,8 @@ int32_t main(int32_t argc, char **argv) {
           bl_morton = convertAccelLonTransToMorton(geoboxBL);
           tr_morton = convertAccelLonTransToMorton(geoboxTR);
           std::clog << "[" << argv[0] << "]: Morton code: " <<  bl_morton << ", " << tr_morton << std::endl;
+
+          identifyRelevantMortonBins(geoboxBL, geoboxTR);
         }
 
         MDB_cursor *cursor;
