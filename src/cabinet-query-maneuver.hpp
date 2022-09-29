@@ -56,4 +56,48 @@ inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL
   return retCode;
 }
 
+inline bool cmp_sort(const std::pair<uint64_t,int64_t>& lhs, 
+         const std::pair<uint64_t,int64_t>& rhs)
+{
+  return lhs.second < rhs.second;
+}
+
+inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<std::pair<uint64_t,int64_t>> * _DrivinStatusList, int64_t minDiffTime, int64_t minDuration, int64_t maxduration) {
+  int32_t retCode{0};
+  
+  sort(_DrivinStatusList->begin(), _DrivinStatusList->end(), cmp_sort);
+
+  int64_t _tsStart = 0;
+  int64_t _tsEnd = 0;
+
+  std::vector<std::pair<int64_t,int64_t>> _singleManeuverList;
+
+  for(int i=0; i < _DrivinStatusList->size(); i++) {
+    if(0==i){
+      _tsStart = (*_DrivinStatusList)[i].second;
+      continue;
+    }
+
+    if(minDiffTime < ((*_DrivinStatusList)[i].second - (*_DrivinStatusList)[i-1].second)) {
+      _tsEnd = (*_DrivinStatusList)[i-1].second;
+
+      int64_t duration = _tsEnd - _tsStart;
+      
+      if(duration > minDuration && duration < maxduration) {
+        std::pair<int64_t,int64_t> _tempMan;
+        _tempMan.first = _tsStart;
+        _tempMan.second = _tsEnd;
+
+        _singleManeuverList.push_back(_tempMan);
+      }
+
+      _tsStart = (*_DrivinStatusList)[i].second;
+      std::cout << _tsStart << std::endl;
+    }
+  }
+
+  return _singleManeuverList;
+}
+
+
 #endif

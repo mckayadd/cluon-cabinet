@@ -124,6 +124,8 @@ int32_t main(int32_t argc, char **argv) {
           //  std::clog << nonRelevantMorton[i] << ";" << std::endl;
         }
 
+
+        std::vector<std::pair<uint64_t,int64_t>> DrivingStatusList;
         MDB_cursor *cursor;
         if (!(retCode = mdb_cursor_open(txn, dbi, &cursor))) {
           MDB_val key;
@@ -159,12 +161,24 @@ int32_t main(int32_t argc, char **argv) {
                 timeStamp = be64toh(timeStamp);
                 if (VERBOSE) {
                   std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
+                  std::cout << std::setprecision(10) << decodedLatLon.first << ";" << decodedLatLon.second << ";" << timeStamp << std::endl;
                 }
-                std::cout << std::setprecision(10) << decodedLatLon.first << ";" << decodedLatLon.second << ";" << timeStamp << std::endl;
+                
+                //store morton timeStamp combo
+                std::pair<uint64_t,int64_t> _mortonTS;
+                _mortonTS.first = morton;
+                _mortonTS.second = timeStamp;
+                DrivingStatusList.push_back(_mortonTS);
               }
             }
           }
         }
+        
+
+        std::vector<std::pair<int64_t,int64_t>> singleManeuverList = detectSingleManeuver(&DrivingStatusList, 160000000, 1000000000, 8000000000);
+        std::cout << "Maneuver Detection found " << singleManeuverList.size() << " Maneuvers." << std::endl;
+        for(auto temp : singleManeuverList)
+          std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
       }
       mdb_txn_abort(txn);
       if (dbi) {
