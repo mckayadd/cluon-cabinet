@@ -27,6 +27,7 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "         --mem:    upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
     std::cerr << "         --thr:    lower threshold in morton space e.g. 3163400 or 3340000 (emergency braking); alternative to --geobox (thr is prioritized)" << std::endl;
     std::cerr << "         --geobox: return all timeStamps for GPS locations within this rectangle specified by bottom-left and top-right lat/longs" << std::endl;
+    std::cerr << "         --aplx:   Applenix data required (e.g. Snowfox)? default: no (e.g. Voyager)" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab --geobox=57.679000,12.309931,57.679690,12.312700" << std::endl;
     retCode = 1;
   } else {
@@ -35,6 +36,7 @@ int32_t main(int32_t argc, char **argv) {
     const bool VERBOSE{commandlineArguments["verbose"].size() != 0};
     const uint64_t THR{(commandlineArguments.count("thr") != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["thr"])) : 0};
     const std::string GEOBOX{commandlineArguments["geobox"]};
+    const bool APLX{commandlineArguments["aplx"].size() != 0};
     std::vector<std::string> geoboxStrings = stringtoolbox::split(GEOBOX, ',');
     std::pair<float,float> geoboxBL;
     std::pair<float,float> geoboxTR;
@@ -80,11 +82,12 @@ int32_t main(int32_t argc, char **argv) {
         mdb_env_close(env);
         return (retCode = 1);
       }
+      retCode = APLX ? mdb_dbi_open(txn, "533/0-morton", 0 , &dbi) : mdb_dbi_open(txn, "1030/2-morton", 0 , &dbi);
       //retCode = mdb_dbi_open(txn, "533/0-morton", 0 , &dbi);
-      retCode = mdb_dbi_open(txn, "1030/2-morton", 0 , &dbi);
+      //retCode = mdb_dbi_open(txn, "1030/2-morton", 0 , &dbi);
       if (MDB_NOTFOUND  == retCode) {
-        //std::clog << "[" << argv[0] << "]: No database '533/0-morton' found in " << CABINET << "." << std::endl;
-        std::clog << "[" << argv[0] << "]: No database '1030/2-morton' found in " << CABINET << "." << std::endl;
+        if(APLX){std::clog << "[" << argv[0] << "]: No database '533/0-morton' found in " << CABINET << "." << std::endl;}
+        else{std::clog << "[" << argv[0] << "]: No database '1030/2-morton' found in " << CABINET << "." << std::endl;}
       }
       else {
         mdb_set_compare(txn, dbi, &compareMortonKeys);
@@ -96,8 +99,8 @@ int32_t main(int32_t argc, char **argv) {
         if (!mdb_stat(txn, dbi, &stat)) {
           numberOfEntries = stat.ms_entries;
         }
-        //std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '533/0-morton' in " << CABINET << std::endl;
-        std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '1030/2-morton' in " << CABINET << std::endl;
+        if(APLX){std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '533/0-morton' in " << CABINET << std::endl;}
+        else{std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '1030/2-morton' in " << CABINET << std::endl;}
 
         uint64_t bl_morton = 0;
         uint64_t tr_morton = 0;
