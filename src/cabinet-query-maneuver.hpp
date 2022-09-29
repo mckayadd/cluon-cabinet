@@ -92,7 +92,6 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
       }
 
       _tsStart = (*_DrivinStatusList)[i].second;
-      std::cout << _tsStart << std::endl;
     }
   }
 
