@@ -24,8 +24,9 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
   bool failed{false};
   try {
 
-    //uint16_t _ID = APLX ? opendlv::device::gps::pos::Grp1Data::ID() : opendlv::proxy::AccelerationReading::ID();
-    uint16_t _ID = opendlv::proxy::AccelerationReading::ID();
+    uint16_t _ID = APLX ? opendlv::device::gps::pos::Grp1Data::ID() : opendlv::proxy::AccelerationReading::ID();
+    uint16_t _subID = APLX ? 0 : 2;
+    //uint16_t _ID = opendlv::proxy::AccelerationReading::ID();
     auto env = lmdb::env::create();
     env.set_mapsize(MEM/2 * 1024UL * 1024UL * 1024UL);
     env.set_max_dbs(100);
@@ -42,8 +43,8 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
     dbiAll.set_compare(rotxn, &compareKeys);
     std::cerr << "Found " << dbiAll.size(rotxn) << " entries." << std::endl;
 
-    //auto dbi = APLX ? lmdb::dbi::open(rotxn, "533/0") : lmdb::dbi::open(rotxn, "1030/0");
-    auto dbi = lmdb::dbi::open(rotxn, "1030/2");
+    auto dbi = APLX ? lmdb::dbi::open(rotxn, "533/0") : lmdb::dbi::open(rotxn, "1030/2");
+    //auto dbi = lmdb::dbi::open(rotxn, "1030/2");
     dbi.set_compare(rotxn, &compareKeys);
     const uint64_t totalEntries = dbi.size(rotxn);
     std::cerr << "Found " << totalEntries << " entries." << std::endl;
@@ -51,8 +52,8 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
     auto cursor = lmdb::cursor::open(rotxn, dbi);
 
     auto txn = lmdb::txn::begin(envout);
-    //auto dbAccelSenderStamp = APLX ? lmdb::dbi::open(txn, "533/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED ) : lmdb::dbi::open(txn, "1030/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
-    auto dbAccelSenderStamp = lmdb::dbi::open(txn, "1030/2-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
+    auto dbAccelSenderStamp = APLX ? lmdb::dbi::open(txn, "533/0-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED ) : lmdb::dbi::open(txn, "1030/2-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
+    //auto dbAccelSenderStamp = lmdb::dbi::open(txn, "1030/2-morton", MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
     dbAccelSenderStamp.set_compare(txn, &compareMortonKeys);
     lmdb::dbi_set_dupsort(txn, dbAccelSenderStamp.handle(), &compareKeys);
 
@@ -70,7 +71,7 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
       if (lmdb::dbi_get(rotxn, dbiAll, &keyAll, &valueAll)) {
         const char *ptr = static_cast<char*>(keyAll.mv_data);
         cabinet::Key storedKey = getKey(ptr, keyAll.mv_size);
-        if (storedKey.dataType() == opendlv::proxy::AccelerationReading::ID()) {
+        if (storedKey.dataType() == _ID) {
           std::vector<char> val;
           val.reserve(storedKey.length());
           if (storedKey.length() > valueAll.mv_size) {
@@ -83,34 +84,20 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
           }
           std::stringstream sstr{std::string(val.data(), storedKey.length())};
           auto e = cluon::extractEnvelope(sstr);
-          if (e.first && e.second.senderStamp() == 0) {
+          if (e.first && e.second.senderStamp() == _subID) {
             // Compose name for database.
             //std::stringstream _dataType_senderStamp;
             //_dataType_senderStamp << _ID << '/'<< e.second.senderStamp() << "-morton";
             //const std::string _shortKey{_dataType_senderStamp.str()};
 
             // Extract value from Envelope and compute Morton code.
-            //const auto tmp = APLX ? cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second)) : cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
-            const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
-            //auto morton = APLX ? convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans())) : convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationX()));
-            auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationY()));
-            //auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans()));
-            //if (VERBOSE && APLX) {
-            //  std::cerr << tmp.accel_lon() << ", " << tmp.accel_trans() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
-            //}
-            if (VERBOSE)
-            {
-              std::cerr << tmp.accelerationX() << ", " << tmp.accelerationY() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
-            }
-            
-
-            // Store data.
-            //auto txn = lmdb::txn::begin(envout);
-            //auto dbAccelSenderStamp = lmdb::dbi::open(txn, _shortKey.c_str(), MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
-            //dbAccelSenderStamp.set_compare(txn, &compareMortonKeys);
-            //lmdb::dbi_set_dupsort(txn, dbAccelSenderStamp.handle(), &compareKeys);
-            {
-              // key is the morton code in network byte order
+            if(APLX) {
+              const auto tmp = cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second));
+              auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans()));
+              if (VERBOSE) {
+                std::cerr << tmp.accel_lon() << ", " << tmp.accel_trans() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
+              }
+              // Store data
               MDB_val __key;
               __key.mv_size = sizeof(morton);
               morton = htobe64(morton);
@@ -123,9 +110,67 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
               __value.mv_size = sizeof(_timeStamp);
               __value.mv_data = &_timeStamp;
 
-              lmdb::dbi_put(txn, dbAccelSenderStamp.handle(), &__key, &__value, 0); 
+              lmdb::dbi_put(txn, dbAccelSenderStamp.handle(), &__key, &__value, 0);
             }
-            //txn.commit();
+            else {
+              const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
+              auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationY()));
+              if (VERBOSE)
+              {
+                std::cerr << tmp.accelerationX() << ", " << tmp.accelerationY() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
+              }
+              MDB_val __key;
+              __key.mv_size = sizeof(morton);
+              morton = htobe64(morton);
+              __key.mv_data = &morton;
+
+              // value is the nanosecond timestamp in network byte order of the entry from table 'all'
+              MDB_val __value;
+              int64_t _timeStamp = storedKey.timeStamp();
+              _timeStamp = htobe64(_timeStamp);
+              __value.mv_size = sizeof(_timeStamp);
+              __value.mv_data = &_timeStamp;
+
+              lmdb::dbi_put(txn, dbAccelSenderStamp.handle(), &__key, &__value, 0);
+            }
+
+            
+            //const auto tmp = APLX ? cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second)) : cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
+            //const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
+            //auto morton = APLX ? convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans())) : convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationY()));
+            //auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accelerationX(), tmp.accelerationY()));
+            //auto morton = convertAccelLonTransToMorton(std::make_pair(tmp.accel_lon(), tmp.accel_trans()));
+            // if (VERBOSE && APLX) {
+            //   std::cerr << tmp.accel_lon() << ", " << tmp.accel_trans() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
+            // }
+            // if (VERBOSE && !APLX)
+            // {
+            //   std::cerr << tmp.accelerationX() << ", " << tmp.accelerationY() << " = " << morton << ", " << storedKey.timeStamp() << std::endl;
+            // }
+            
+
+            // Store data.
+            //auto txn = lmdb::txn::begin(envout);
+            //auto dbAccelSenderStamp = lmdb::dbi::open(txn, _shortKey.c_str(), MDB_CREATE|MDB_DUPSORT|MDB_DUPFIXED );
+            //dbAccelSenderStamp.set_compare(txn, &compareMortonKeys);
+            //lmdb::dbi_set_dupsort(txn, dbAccelSenderStamp.handle(), &compareKeys);
+            // {
+            //   // key is the morton code in network byte order
+            //   MDB_val __key;
+            //   __key.mv_size = sizeof(morton);
+            //   morton = htobe64(morton);
+            //   __key.mv_data = &morton;
+
+            //   // value is the nanosecond timestamp in network byte order of the entry from table 'all'
+            //   MDB_val __value;
+            //   int64_t _timeStamp = storedKey.timeStamp();
+            //   _timeStamp = htobe64(_timeStamp);
+            //   __value.mv_size = sizeof(_timeStamp);
+            //   __value.mv_data = &_timeStamp;
+
+            //   lmdb::dbi_put(txn, dbAccelSenderStamp.handle(), &__key, &__value, 0); 
+            // }
+            // //txn.commit();
 
           }
         }
@@ -145,6 +190,11 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
     failed = true;
   }
   return failed;
+}
+
+
+inline void store_data() {
+
 }
 
 #endif
