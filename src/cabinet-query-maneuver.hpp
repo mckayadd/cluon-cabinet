@@ -20,7 +20,7 @@
 #include <sstream>
 #include <string>
 
-inline int32_t identifyRelevantMortonBins(const std::pair<float,float> &BoxBL, const std::pair<float,float> &BoxTR) {
+inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL, const std::pair<float,float> &BoxTR, std::vector<uint64_t> * _nonRelevantMorton) {
   int32_t retCode{0};
 
   uint64_t bl_morton = 0;
@@ -29,12 +29,17 @@ inline int32_t identifyRelevantMortonBins(const std::pair<float,float> &BoxBL, c
   bl_morton = convertAccelLonTransToMorton(BoxBL);
   tr_morton = convertAccelLonTransToMorton(BoxTR);
 
-
   const uint32_t _xBL = std::lroundf((BoxBL.first + 10.0f) * 100);
   const uint32_t _yBL = std::lround((BoxBL.second + 10.0f) * 100);
   const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 100);
   const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 100);
 
+  // add all values within morton ares to vector
+  for (int i=bl_morton; i<= tr_morton; i++) {
+    _nonRelevantMorton->push_back(i);
+  }
+
+  // remove morton values that are not covered by the fence -> only values that are not relevant remain
   int i, j;
   std::pair<float,float> _accelbox;
   uint64_t _morton;
@@ -43,7 +48,8 @@ inline int32_t identifyRelevantMortonBins(const std::pair<float,float> &BoxBL, c
       _accelbox.first = j/100.0f - 10.0f;
       _accelbox.second = i/100.0f - 10.0f;
       _morton = convertAccelLonTransToMorton(_accelbox);
-      std::cout << _morton << std::endl;
+      _nonRelevantMorton->erase(std::remove(_nonRelevantMorton->begin(), _nonRelevantMorton->end(), _morton), _nonRelevantMorton->end());
+      //std::cout << _morton << std::endl;
     }
   }
 

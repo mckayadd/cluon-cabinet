@@ -104,8 +104,9 @@ int32_t main(int32_t argc, char **argv) {
 
         uint64_t bl_morton = 0;
         uint64_t tr_morton = 0;
+        std::vector<uint64_t> nonRelevantMorton;
 
-          // Query with Threshold
+        // Query with Threshold
         if (0 != THR) {
           bl_morton = THR;
           tr_morton = std::numeric_limits<uint64_t>::max()-1;
@@ -117,7 +118,10 @@ int32_t main(int32_t argc, char **argv) {
           tr_morton = convertAccelLonTransToMorton(geoboxTR);
           std::clog << "[" << argv[0] << "]: Morton code: " <<  bl_morton << ", " << tr_morton << std::endl;
 
-          identifyRelevantMortonBins(geoboxBL, geoboxTR);
+          identifyNonRelevantMortonBins(geoboxBL, geoboxTR, &nonRelevantMorton);
+
+          //for (int i = 0; i < nonRelevantMorton.size(); i++)
+          //  std::clog << nonRelevantMorton[i] << ";" << std::endl;
         }
 
         MDB_cursor *cursor;
@@ -132,7 +136,21 @@ int32_t main(int32_t argc, char **argv) {
             while (mdb_cursor_get(cursor, &key, &value, MDB_NEXT) == 0) {
               uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
               morton = be64toh(morton);
+              
               if (morton > tr_morton) break;
+
+              if (0 == THR) {
+                // check if value is relevant -> continue while loop;
+                bool nonRelevantFlag = false;
+                for (int i=0; i<nonRelevantMorton.size(); i++) {
+                  if(morton == nonRelevantMorton[i]) {
+                    nonRelevantFlag = true;
+                    break;
+                  }
+                }
+                if(nonRelevantFlag) continue;
+              }
+
               auto decodedLatLon = convertMortonToAccelLonTrans(morton);
               int64_t timeStamp{0};
               if (value.mv_size == sizeof(int64_t)) {
