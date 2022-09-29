@@ -83,7 +83,7 @@ inline bool cabinet_acceltoMorton(const uint64_t &MEM, const std::string &CABINE
           }
           std::stringstream sstr{std::string(val.data(), storedKey.length())};
           auto e = cluon::extractEnvelope(sstr);
-          if (e.first && e.second.senderStamp() == 0) {
+          if (e.first && e.second.senderStamp() == 2) {
             // Compose name for database.
             //std::stringstream _dataType_senderStamp;
             //_dataType_senderStamp << _ID << '/'<< e.second.senderStamp() << "-morton";
