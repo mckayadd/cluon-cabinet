@@ -25,16 +25,16 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab [--mem=32024] --geobox=bottom-left-latitude,bottom-left-longitude,top-right-latitude,top-right-longitude" << std::endl;
     std::cerr << "         --cab:    name of the database file" << std::endl;
     std::cerr << "         --mem:    upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
-    std::cerr << "         --thr:    lower threshold in morton space e.g. 3163400 or 3340000 (emergency braking); alternative to --geobox (thr is prioritized)" << std::endl;
+    std::cerr << "         --thr:    lower threshold in morton space e.g. 31634000000 or 33400000000 (emergency braking); alternative to --geobox (thr is prioritized)" << std::endl;
     std::cerr << "         --geobox: return all timeStamps for GPS locations within this rectangle specified by bottom-left and top-right lat/longs" << std::endl;
     std::cerr << "         --aplx:   Applenix data required (e.g. Snowfox)? default: no (e.g. Voyager)" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab --geobox=57.679000,12.309931,57.679690,12.312700" << std::endl;
     retCode = 1;
-  } else {
+  } else {    
     const std::string CABINET{commandlineArguments["cab"]};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
     const bool VERBOSE{commandlineArguments["verbose"].size() != 0};
-    const uint64_t THR{(commandlineArguments.count("thr") != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["thr"])) : 0};
+    const uint64_t THR{(commandlineArguments.count("thr") != 0) ? static_cast<uint64_t>(std::stol(commandlineArguments["thr"])) : 0};
     const std::string GEOBOX{commandlineArguments["geobox"]};
     const bool APLX{commandlineArguments["aplx"].size() != 0};
     std::vector<std::string> geoboxStrings = stringtoolbox::split(GEOBOX, ',');
@@ -46,6 +46,7 @@ int32_t main(int32_t argc, char **argv) {
       geoboxTR.first = std::stof(geoboxStrings.at(2));
       geoboxTR.second = std::stof(geoboxStrings.at(3));
     }
+
 
     MDB_env *env{nullptr};
     const int numberOfDatabases{100};
@@ -74,7 +75,7 @@ int32_t main(int32_t argc, char **argv) {
       mdb_env_close(env);
       return 1;
     }
-
+    
     {
       MDB_txn *txn{nullptr};
       MDB_dbi dbi{0};
@@ -105,6 +106,8 @@ int32_t main(int32_t argc, char **argv) {
         uint64_t bl_morton = 0;
         uint64_t tr_morton = 0;
         std::vector<uint64_t> nonRelevantMorton;
+
+        
 
         // Query with Threshold
         if (0 != THR) {
@@ -153,7 +156,7 @@ int32_t main(int32_t argc, char **argv) {
                 if(nonRelevantFlag) continue;
               }
 
-              auto decodedLatLon = convertMortonToAccelLonTrans(morton);
+              auto decodedAccel = convertMortonToAccelLonTrans(morton);
               int64_t timeStamp{0};
               if (value.mv_size == sizeof(int64_t)) {
                 const char *ptr = static_cast<char*>(value.mv_data);
@@ -161,7 +164,7 @@ int32_t main(int32_t argc, char **argv) {
                 timeStamp = be64toh(timeStamp);
                 if (VERBOSE) {
                   std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
-                  std::cout << std::setprecision(10) << decodedLatLon.first << ";" << decodedLatLon.second << ";" << timeStamp << std::endl;
+                  std::cout << std::setprecision(10) << decodedAccel.first << ";" << decodedAccel.second << ";" << timeStamp << std::endl;
                 }
                 
                 //store morton timeStamp combo
@@ -175,7 +178,7 @@ int32_t main(int32_t argc, char **argv) {
         }
         
 
-        std::vector<std::pair<int64_t,int64_t>> singleManeuverList = detectSingleManeuver(&DrivingStatusList, 160000000, 1000000000, 8000000000);
+        std::vector<std::pair<int64_t,int64_t>> singleManeuverList = detectSingleManeuver(&DrivingStatusList, 160000000, 1000000000, 5000000000);
         std::cout << "Maneuver Detection found " << singleManeuverList.size() << " Maneuvers." << std::endl;
         for(auto temp : singleManeuverList)
           std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;

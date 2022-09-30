@@ -29,10 +29,10 @@ inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL
   bl_morton = convertAccelLonTransToMorton(BoxBL);
   tr_morton = convertAccelLonTransToMorton(BoxTR);
 
-  const uint32_t _xBL = std::lroundf((BoxBL.first + 10.0f) * 100);
-  const uint32_t _yBL = std::lround((BoxBL.second + 10.0f) * 100);
-  const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 100);
-  const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 100);
+  const uint32_t _xBL = std::lroundf((BoxBL.first + 10.0f) * 10000.0f);
+  const uint32_t _yBL = std::lround((BoxBL.second + 10.0f) * 10000.0f);
+  const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 10000.0f);
+  const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 10000.0f);
 
   // add all values within morton ares to vector
   for (int i=bl_morton; i<= tr_morton; i++) {
@@ -45,8 +45,8 @@ inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL
   uint64_t _morton;
   for (i=_yBL; i<_yTR; i++) {
     for (j=_xBL; j<_xTR; j++) {
-      _accelbox.first = j/100.0f - 10.0f;
-      _accelbox.second = i/100.0f - 10.0f;
+      _accelbox.first = j/10000.0f - 10.0f;
+      _accelbox.second = i/10000.0f - 10.0f;
       _morton = convertAccelLonTransToMorton(_accelbox);
       _nonRelevantMorton->erase(std::remove(_nonRelevantMorton->begin(), _nonRelevantMorton->end(), _morton), _nonRelevantMorton->end());
       //std::cout << _morton << std::endl;
@@ -78,12 +78,14 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
       continue;
     }
 
-    if(minDiffTime < ((*_DrivinStatusList)[i].second - (*_DrivinStatusList)[i-1].second)) {
+    if((minDiffTime < std::abs((*_DrivinStatusList)[i].second - (*_DrivinStatusList)[i-1].second)) || (i == (_DrivinStatusList->size()-1))) {
       _tsEnd = (*_DrivinStatusList)[i-1].second;
+      //std::cout << (*_DrivinStatusList)[i].second << "; " << (*_DrivinStatusList)[i-1].second << "; " << std::abs((*_DrivinStatusList)[i].second - (*_DrivinStatusList)[i-1].second) << std::endl;
 
       int64_t duration = _tsEnd - _tsStart;
+      // std::cout << duration << "; " << (*_DrivinStatusList)[i].second << "; " << abs((*_DrivinStatusList)[i].second - (*_DrivinStatusList)[i-1].second) << std::endl;
       
-      if(duration > minDuration && duration < maxduration) {
+      if((duration > minDuration) && (duration < maxduration)) {
         std::pair<int64_t,int64_t> _tempMan;
         _tempMan.first = _tsStart;
         _tempMan.second = _tsEnd;
