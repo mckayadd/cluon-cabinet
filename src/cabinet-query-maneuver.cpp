@@ -17,10 +17,44 @@
 #include <iomanip>
 #include <string>
 
+
+class DrivingStatus {
+  public:
+    char* name;
+    std::pair<float,float> fenceBL;
+    std::pair<float,float> fenceTR;
+    uint64_t minDuration;
+    uint64_t maxDuration;
+    uint64_t minGap; // to following;
+    uint64_t maxGap; // to following;
+    int64_t minDiffTime; //how sensitive on single outliers
+    std::vector<uint64_t> relevantMorton;
+    std::vector<std::pair<int64_t,int64_t>> singleManeuverList;
+
+    DrivingStatus(char *name,
+                  std::pair<float,float> fenceBL,
+                  std::pair<float,float> fenceTR,
+                  uint64_t minDuration,
+                  uint64_t maxDuration,
+                  uint64_t minGap,
+                  uint64_t maxGap,
+                  int64_t minDiffTime)
+                  : name(name),
+                  fenceBL(fenceBL),
+                  fenceTR(fenceTR),
+                  minDuration(minDuration),
+                  maxDuration(maxDuration),
+                  minGap(minGap),
+                  maxGap(maxGap),
+                  minDiffTime(minDiffTime) {}
+};
+
+
+
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
-  if ( (0 == commandlineArguments.count("cab")) || ((0 == commandlineArguments.count("geobox")) && (0 == commandlineArguments.count("thr")) )) {
+  if ( (0 == commandlineArguments.count("cab"))) {
     std::cerr << argv[0] << " query a cabinet (an lmdb-based key/value-database)." << std::endl;
     std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab [--mem=32024] --geobox=bottom-left-latitude,bottom-left-longitude,top-right-latitude,top-right-longitude" << std::endl;
     std::cerr << "         --cab:    name of the database file" << std::endl;
@@ -47,6 +81,38 @@ int32_t main(int32_t argc, char **argv) {
       geoboxTR.second = std::stof(geoboxStrings.at(3));
     }
 
+    std::pair<float,float> _fenceBL;
+    std::pair<float,float> _fenceTR;
+
+////////////////////////////////////////////////////////////////////////////////
+
+    _fenceBL.first = -1.5; _fenceBL.second = 0.75;
+    _fenceTR.first = 0.75; _fenceTR.second = 5;
+    DrivingStatus *leftCurve  = new DrivingStatus( "leftCurve",
+            _fenceBL,
+            _fenceTR,
+            100000000,
+            3000000000,
+            -200000000,
+            1000000000,
+            160000000);
+
+    _fenceBL.first = -1.5; _fenceBL.second = -5;
+    _fenceTR.first = 0.75; _fenceTR.second = -0.75;
+    DrivingStatus *rightCurve = new DrivingStatus( "rightCurve",
+            _fenceBL,
+            _fenceTR,
+            100000000,
+            3000000000,
+            -200000000,
+            1000000000,
+            160000000);
+
+    std::vector<DrivingStatus*> maneuver;
+    maneuver.push_back(leftCurve);
+    maneuver.push_back(rightCurve);
+
+////////////////////////////////////////////////////////////////////////////////
 
     MDB_env *env{nullptr};
     const int numberOfDatabases{100};
@@ -105,8 +171,6 @@ int32_t main(int32_t argc, char **argv) {
 
         uint64_t bl_morton = 0;
         uint64_t tr_morton = 0;
-        std::vector<std::pair<float,float>> nonRelevantMortonBins;
-        std::vector<uint64_t> nonRelevantMorton;
         std::vector<uint64_t> relevantMorton;
         
 
@@ -117,100 +181,111 @@ int32_t main(int32_t argc, char **argv) {
           std::clog << "[" << argv[0] << "]: Morton code threshold: " <<  bl_morton << std::endl;
         }
         else {
-          // Query around a known coordinate (southern-most point at right connection to GOT FastFood area when using the example):
-          bl_morton = convertAccelLonTransToMorton(geoboxBL);
-          tr_morton = convertAccelLonTransToMorton(geoboxTR);
-          std::clog << "[" << argv[0] << "]: Morton code: " <<  bl_morton << ", " << tr_morton << std::endl;
+          if (4 == geoboxStrings.size()) { // no geobox argument
 
-          //identifyNonRelevantMortonBins(geoboxBL, geoboxTR, &nonRelevantMortonBins);
+            DrivingStatus *_tempDS = new DrivingStatus( "rightCurve",
+                geoboxBL,
+                geoboxTR,
+                100000000,
+                3000000000,
+                0,
+                0,
+                160000000);
 
-          
-          //singleNonRelevantMortonBin(geoboxBL, geoboxTR, &nonRelevantMorton);
-          //std::clog << "Identification of non Relevant done." << std::endl;
+            maneuver.push_back(_tempDS);
+          }
 
-          std::clog << "Identification of relevant Areas." << std::endl;
-          identifyRelevantMortonBins(geoboxBL, geoboxTR, &relevantMorton);
-          std::clog << "Searchmask contains " << relevantMorton.size() << " values." << std::endl;
+          for(DrivingStatus* _DrivingStatus : maneuver) {
+            std::clog << "Identification of relevant Areas for " << _DrivingStatus->name << "." << std::endl;
+            identifyRelevantMortonBins(_DrivingStatus->fenceBL, _DrivingStatus->fenceTR, &(_DrivingStatus->relevantMorton));
+            std::clog << "Searchmask contains " << relevantMorton.size() << " values." << std::endl;
+          }
 
-          //for (int i = 0; i < nonRelevantMorton.size(); i++)
-          //  std::clog << nonRelevantMorton[i] << ";" << std::endl;
         }
 
-
-        std::vector<std::pair<uint64_t,int64_t>> DrivingStatusList;
+        
         MDB_cursor *cursor;
         if (!(retCode = mdb_cursor_open(txn, dbi, &cursor))) {
           MDB_val key;
           MDB_val value;
 
-          for (uint64_t _relevantMorton : relevantMorton) {
+          for(DrivingStatus* _tempDS : maneuver) {
+            std::vector<int64_t> _tempDrivingStatusList;
 
-            key.mv_size = sizeof(_relevantMorton);
-            auto _temp_relevantMorton = htobe64(_relevantMorton);
-            key.mv_data = &_temp_relevantMorton;
+            for (uint64_t _relevantMorton : _tempDS->relevantMorton) {
 
-            //uint64_t temp = *reinterpret_cast<uint64_t*>(key.mv_data);
-            //temp = be64toh(temp);
-            //std::clog << "Key" << key.mv_data << "; " << &_temp_relevantMorton << "; changed " <<  temp << "; " << _relevantMorton << std::endl;
+              key.mv_size = sizeof(_relevantMorton);
+              auto _temp_relevantMorton = htobe64(_relevantMorton);
+              key.mv_data = &_temp_relevantMorton;
+
+              //uint64_t temp = *reinterpret_cast<uint64_t*>(key.mv_data);
+              //temp = be64toh(temp);
+              //std::clog << "Key" << key.mv_data << "; " << &_temp_relevantMorton << "; changed " <<  temp << "; " << _relevantMorton << std::endl;
 
 
-            //for (auto _tempPair : nonRelevantMortonBins) {
-            if (MDB_NOTFOUND != mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE)) {
-            // for (size_t _relevantMortonIter = 0; _relevantMortonIter < relevantMorton.size(); ++_relevantMortonIter) {
-            //   uint64_t _relevantMorton = relevantMorton[_relevantMortonIter];
-              // if (_relevantMorton == 16119181463)
+              //for (auto _tempPair : nonRelevantMortonBins) {
+              if (MDB_NOTFOUND != mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE)) {
+              // for (size_t _relevantMortonIter = 0; _relevantMortonIter < relevantMorton.size(); ++_relevantMortonIter) {
+              //   uint64_t _relevantMorton = relevantMorton[_relevantMortonIter];
+                // if (_relevantMorton == 16119181463)
 
-              //auto _tempRelevantMorton = htobe64(_relevantMorton);
-              //key.mv_data = &_tempRelevantMorton;
+                //auto _tempRelevantMorton = htobe64(_relevantMorton);
+                //key.mv_data = &_tempRelevantMorton;
 
-              int _rc = 0;
+                int _rc = 0;
 
-              while (_rc == 0) {
+                while (_rc == 0) {
 
-                uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
-                morton = be64toh(morton);
-                //uint64_t _tempRelMort = be64toh(_relevantMorton);
+                  uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
+                  morton = be64toh(morton);
+                  //uint64_t _tempRelMort = be64toh(_relevantMorton);
 
-                if(morton > _relevantMorton) break; // break;
-                
-                //std::clog << "Morton: " << morton << "; relevant_value: " << _relevantMorton << "; TS: " << *reinterpret_cast<uint64_t*>(key.mv_data) << std::endl;
-
-                auto decodedAccel = convertMortonToAccelLonTrans(morton);
-                int64_t timeStamp{0};
-                if (value.mv_size == sizeof(int64_t)) {
-                  const char *ptr = static_cast<char*>(value.mv_data);
-                  std::memcpy(&timeStamp, ptr, value.mv_size);
-                  timeStamp = be64toh(timeStamp);
-                  if (VERBOSE) {
-                    std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
-                    std::cout << std::setprecision(10) << decodedAccel.first << ";" << decodedAccel.second << ";" << timeStamp << std::endl;
-                  }
+                  if(morton > _relevantMorton) break; // break;
                   
-                  //store morton timeStamp combo
-                  std::pair<uint64_t,int64_t> _mortonTS;
-                  _mortonTS.first = morton;
-                  _mortonTS.second = timeStamp;
-                  DrivingStatusList.push_back(_mortonTS);
+                  //std::clog << "Morton: " << morton << "; relevant_value: " << _relevantMorton << "; TS: " << *reinterpret_cast<uint64_t*>(key.mv_data) << std::endl;
+
+                  auto decodedAccel = convertMortonToAccelLonTrans(morton);
+                  int64_t timeStamp{0};
+                  if (value.mv_size == sizeof(int64_t)) {
+                    const char *ptr = static_cast<char*>(value.mv_data);
+                    std::memcpy(&timeStamp, ptr, value.mv_size);
+                    timeStamp = be64toh(timeStamp);
+                    if (VERBOSE) {
+                      std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
+                      std::cout << std::setprecision(10) << decodedAccel.first << ";" << decodedAccel.second << ";" << timeStamp << std::endl;
+                    }
+                    
+                    //store morton timeStamp combo
+                    // std::pair<uint64_t,int64_t> _mortonTS;
+                    // _mortonTS.first = morton;
+                    // _mortonTS.second = timeStamp;
+                    // DrivingStatusList.push_back(_mortonTS);
+                    _tempDrivingStatusList.push_back(timeStamp);
+                  }
+                  // cursor weitersetzen
+                  _rc = mdb_cursor_get(cursor, &key, &value, MDB_NEXT);
                 }
-                // cursor weitersetzen
-                _rc = mdb_cursor_get(cursor, &key, &value, MDB_NEXT);
               }
             }
+
+          std::cout << "Worked on: " << _tempDS->name << std::endl;
+          std::cout << "Detected " << _tempDS->singleManeuverList.size() << " relevant Entries in Database" << std::endl;
+
+          _tempDS->singleManeuverList = detectSingleManeuver(&_tempDrivingStatusList, _tempDS->minDiffTime, _tempDS->minDuration, _tempDS->maxDuration);
+          sort(_tempDS->singleManeuverList->begin(), _tempDS->singleManeuverList->end(), cmp_sort_first);
+          std::cout << "Maneuver Detection found " << _tempDS->singleManeuverList.size() << " Maneuvers." << std::endl;
+          for(auto temp : _tempDS->singleManeuverList)
+            std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
           }
         }
         
-        std::cout << "Detected " << DrivingStatusList.size() << " relevant Entries in Database" << std::endl;
-
-        std::vector<std::pair<int64_t,int64_t>> singleManeuverList = detectSingleManeuver(&DrivingStatusList, 160000000, 100000000, 3000000000);
-        std::cout << "Maneuver Detection found " << singleManeuverList.size() << " Maneuvers." << std::endl;
-        for(auto temp : singleManeuverList)
-          std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
       }
       mdb_txn_abort(txn);
       if (dbi) {
         mdb_dbi_close(env, dbi);
       }
     }
+
     if (env) {
       mdb_env_close(env);
     }

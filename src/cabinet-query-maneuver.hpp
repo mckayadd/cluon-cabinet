@@ -113,35 +113,40 @@ inline int32_t identifyRelevantMortonBins(const std::pair<float,float> &BoxBL, c
   return retCode;
 }
  
-
-inline bool cmp_sort(const std::pair<uint64_t,int64_t>& lhs, 
-         const std::pair<uint64_t,int64_t>& rhs)
+inline bool cmp_sort_first(const std::pair<int64_t,int64_t> & lhs, 
+         const std::pair<int64_t,int64_t> & rhs)
 {
   return lhs.second < rhs.second;
 }
 
-inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<std::pair<uint64_t,int64_t>> * _DrivinStatusList, int64_t minDiffTime, int64_t minDuration, int64_t maxduration) {
+inline bool cmp_sort(const int64_t& lhs, 
+         const int64_t & rhs)
+{
+  return lhs < rhs;
+}
+
+inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<int64_t> * _tempDrivingStatusList, int64_t minDiffTime, int64_t minDuration, int64_t maxduration) {
   int32_t retCode{0};
   
-  sort(_DrivinStatusList->begin(), _DrivinStatusList->end(), cmp_sort);
+  sort(_tempDrivingStatusList->begin(), _tempDrivingStatusList->end(), cmp_sort);
 
   int64_t _tsStart = 0;
   int64_t _tsEnd = 0;
 
   std::vector<std::pair<int64_t,int64_t>> _singleManeuverList;
 
-  for(int i=0; i < _DrivinStatusList->size(); i++) {
+  for(int i=0; i < _tempDrivingStatusList->size(); i++) {
     if(0==i){
-      _tsStart = (*_DrivinStatusList)[i].second;
+      _tsStart = (*_tempDrivingStatusList)[i];
       continue;
     }
 
-    if((minDiffTime < std::abs((*_DrivinStatusList)[i].second - (*_DrivinStatusList)[i-1].second)) || (i == (_DrivinStatusList->size()-1))) {
-      _tsEnd = (*_DrivinStatusList)[i-1].second;
-      //std::cout << (*_DrivinStatusList)[i].second << "; " << (*_DrivinStatusList)[i-1].second << "; " << std::abs((*_DrivinStatusList)[i].second - (*_DrivinStatusList)[i-1].second) << std::endl;
+    if((minDiffTime < std::abs((*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1])) || (i == (_tempDrivingStatusList->size()-1))) {
+      _tsEnd = (*_tempDrivingStatusList)[i-1];
+      //std::cout << (*_tempDrivingStatusList)[i].second << "; " << (*_tempDrivingStatusList)[i-1].second << "; " << std::abs((*_tempDrivingStatusList)[i].second - (*_tempDrivingStatusList)[i-1].second) << std::endl;
 
       int64_t duration = _tsEnd - _tsStart;
-      // std::cout << duration << "; " << (*_DrivinStatusList)[i].second << "; " << abs((*_DrivinStatusList)[i].second - (*_DrivinStatusList)[i-1].second) << std::endl;
+      // std::cout << duration << "; " << (*_tempDrivingStatusList)[i].second << "; " << abs((*_tempDrivingStatusList)[i].second - (*_tempDrivingStatusList)[i-1].second) << std::endl;
       
       if((duration > minDuration) && (duration < maxduration)) {
         std::pair<int64_t,int64_t> _tempMan;
@@ -151,11 +156,16 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
         _singleManeuverList.push_back(_tempMan);
       }
 
-      _tsStart = (*_DrivinStatusList)[i].second;
+      _tsStart = (*_tempDrivingStatusList)[i];
     }
   }
 
   return _singleManeuverList;
+}
+
+inline int64_t maneuverDetector() {
+
+  return -1
 }
 
 
