@@ -20,8 +20,33 @@
 #include <sstream>
 #include <string>
 
-inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL, const std::pair<float,float> &BoxTR, std::vector<uint64_t> * _nonRelevantMorton) {
+
+inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL, const std::pair<float,float> &BoxTR, std::vector<std::pair<float,float>> *_nonRelevantMortonBins) {
   int32_t retCode{0};
+
+  // const uint32_t _xBL = std::lroundf((BoxBL.first + 10.0f) * 10000.0f);
+  // const uint32_t _yBL = std::lround((BoxBL.second + 10.0f) * 10000.0f);
+  // const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 10000.0f);
+  // const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 10000.0f);
+
+  // if(((_xTR-_xBL) < 10000) & ((_yTR-_yBL) < 10000)) {
+  //   std::pair<float,float> _temp;
+  //   _temp.first = .first/10000.0f - 10.0f;
+  //   _nonRelevantMortonBins->push_back()
+  //   return retCode;
+  // }
+
+  // if(((_xTR-_xBL) >= 10000)) {
+  //   identifyNonRelevantMortonBins()
+  // }
+
+  return retCode;
+}
+
+inline int32_t singleNonRelevantMortonBin(const std::pair<float,float> &BoxBL, const std::pair<float,float> &BoxTR, std::vector<uint64_t> * _nonRelevantMorton) {
+  int32_t retCode{0};
+
+  _nonRelevantMorton->clear();
 
   uint64_t bl_morton = 0;
   uint64_t tr_morton = 0;
@@ -29,10 +54,10 @@ inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL
   bl_morton = convertAccelLonTransToMorton(BoxBL);
   tr_morton = convertAccelLonTransToMorton(BoxTR);
 
-  const uint32_t _xBL = std::lroundf((BoxBL.first + 10.0f) * 10000.0f);
-  const uint32_t _yBL = std::lround((BoxBL.second + 10.0f) * 10000.0f);
-  const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 10000.0f);
-  const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 10000.0f);
+  const uint32_t _xBL = std::lroundf((BoxBL.first + 10.0f) * 100.0f);
+  const uint32_t _yBL = std::lround((BoxBL.second + 10.0f) * 100.0f);
+  const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 100.0f);
+  const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 100.0f);
 
   // add all values within morton ares to vector
   for (int i=bl_morton; i<= tr_morton; i++) {
@@ -45,8 +70,8 @@ inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL
   uint64_t _morton;
   for (i=_yBL; i<_yTR; i++) {
     for (j=_xBL; j<_xTR; j++) {
-      _accelbox.first = j/10000.0f - 10.0f;
-      _accelbox.second = i/10000.0f - 10.0f;
+      _accelbox.first = j/100.0f - 10.0f;
+      _accelbox.second = i/100.0f - 10.0f;
       _morton = convertAccelLonTransToMorton(_accelbox);
       _nonRelevantMorton->erase(std::remove(_nonRelevantMorton->begin(), _nonRelevantMorton->end(), _morton), _nonRelevantMorton->end());
       //std::cout << _morton << std::endl;
@@ -55,6 +80,39 @@ inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL
 
   return retCode;
 }
+
+
+inline int32_t identifyRelevantMortonBins(const std::pair<float,float> &BoxBL, const std::pair<float,float> &BoxTR, std::vector<uint64_t> * _relevantMorton) {
+  int32_t retCode{0};
+
+  uint64_t bl_morton = 0;
+  uint64_t tr_morton = 0;
+
+  bl_morton = convertAccelLonTransToMorton(BoxBL);
+  tr_morton = convertAccelLonTransToMorton(BoxTR);
+
+  const uint32_t _xBL = std::lroundf((BoxBL.first + 10.0f) * 100.0f);
+  const uint32_t _yBL = std::lround((BoxBL.second + 10.0f) * 100.0f);
+  const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 100.0f);
+  const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 100.0f);
+
+  // remove morton values that are not covered by the fence -> only values that are not relevant remain
+  int i, j;
+  std::pair<float,float> _accelbox;
+  uint64_t _morton;
+  for (i=_yBL; i <=_yTR; i++) {
+    for (j=_xBL; j <=_xTR; j++) {
+      _accelbox.first = j/100.0f - 10.0f;
+      _accelbox.second = i/100.0f - 10.0f;
+      _morton = convertAccelLonTransToMorton(_accelbox);
+      _relevantMorton->push_back(_morton);
+      //std::cout << _morton << std::endl;
+    }
+  }
+
+  return retCode;
+}
+ 
 
 inline bool cmp_sort(const std::pair<uint64_t,int64_t>& lhs, 
          const std::pair<uint64_t,int64_t>& rhs)
