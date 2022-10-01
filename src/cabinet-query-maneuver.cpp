@@ -25,8 +25,8 @@ class DrivingStatus {
     std::pair<float,float> fenceTR;
     uint64_t minDuration;
     uint64_t maxDuration;
-    uint64_t minGap; // to following;
-    uint64_t maxGap; // to following;
+    int64_t minGap; // to following;
+    int64_t maxGap; // to following;
     int64_t minDiffTime; //how sensitive on single outliers
     std::vector<uint64_t> relevantMorton;
     std::vector<std::pair<int64_t,int64_t>> singleManeuverList;
@@ -36,8 +36,8 @@ class DrivingStatus {
                   std::pair<float,float> fenceTR,
                   uint64_t minDuration,
                   uint64_t maxDuration,
-                  uint64_t minGap,
-                  uint64_t maxGap,
+                  int64_t minGap,
+                  int64_t maxGap,
                   int64_t minDiffTime)
                   : name(name),
                   fenceBL(fenceBL),
@@ -49,6 +49,52 @@ class DrivingStatus {
                   minDiffTime(minDiffTime) {}
 };
 
+
+
+int64_t maneuverDetectorRecursiv(std::vector<DrivingStatus*> maneuver, int maneuver_idx, int status_idx) {
+  
+  if( maneuver_idx >= maneuver.size())
+    return -1;
+
+  if(maneuver.size() == 1)
+    return -1;
+
+  // std::cout << "start maneuver Detection: maneuver idx " << maneuver_idx << " status " << status_idx << std::endl;
+  
+  DrivingStatus* currentManeuver = maneuver[maneuver_idx];
+  DrivingStatus* nextManeuver = maneuver[maneuver_idx + 1];
+
+  std::pair<int64_t,int64_t> currentStatus = currentManeuver->singleManeuverList[status_idx];
+
+  //for(std::pair<int64_t,int64_t> nextStatus : nextManeuver->singleManeuverList) 
+  
+  for(int i = 0; i <= nextManeuver->singleManeuverList.size(); i++) {
+
+    std::pair<int64_t,int64_t> nextStatus = nextManeuver->singleManeuverList[i];
+
+    int64_t gap = nextStatus.first - currentStatus.second;
+
+    //std::cout << "Gap: " << gap << " first " << nextStatus.first << " end " << currentStatus.second << std::endl;
+
+    if(gap > currentManeuver->maxGap){
+      // std::cout << "gap " << gap << " groesser als " <<  currentManeuver->maxGap << std::endl;
+      break;
+    }
+
+    if (gap < currentManeuver->minGap) continue;
+
+    if((gap > currentManeuver->minGap) && (gap < currentManeuver->maxGap)) {
+      
+      if(maneuver_idx == (maneuver.size() - 2)) {
+        return nextStatus.second;
+      } else {
+        maneuverDetectorRecursiv(maneuver, maneuver_idx + 1, i);
+      }
+    }
+  }
+
+  return -1;
+}
 
 
 int32_t main(int32_t argc, char **argv) {
@@ -91,10 +137,10 @@ int32_t main(int32_t argc, char **argv) {
     DrivingStatus *leftCurve  = new DrivingStatus( "leftCurve",
             _fenceBL,
             _fenceTR,
-            100000000,
+            500000000,
             3000000000,
             -200000000,
-            1000000000,
+            2000000000,
             160000000);
 
     _fenceBL.first = -1.5; _fenceBL.second = -5;
@@ -102,13 +148,14 @@ int32_t main(int32_t argc, char **argv) {
     DrivingStatus *rightCurve = new DrivingStatus( "rightCurve",
             _fenceBL,
             _fenceTR,
-            100000000,
+            500000000,
             3000000000,
             -200000000,
-            1000000000,
+            2000000000,
             160000000);
 
     std::vector<DrivingStatus*> maneuver;
+    
     maneuver.push_back(leftCurve);
     maneuver.push_back(rightCurve);
 
@@ -212,6 +259,8 @@ int32_t main(int32_t argc, char **argv) {
           for(DrivingStatus* _tempDS : maneuver) {
             std::vector<int64_t> _tempDrivingStatusList;
 
+            std::cout << "Work on: " << _tempDS->name << std::endl;
+
             for (uint64_t _relevantMorton : _tempDS->relevantMorton) {
 
               key.mv_size = sizeof(_relevantMorton);
@@ -268,23 +317,35 @@ int32_t main(int32_t argc, char **argv) {
               }
             }
 
-          std::cout << "Worked on: " << _tempDS->name << std::endl;
-          std::cout << "Detected " << _tempDS->singleManeuverList.size() << " relevant Entries in Database" << std::endl;
-
           _tempDS->singleManeuverList = detectSingleManeuver(&_tempDrivingStatusList, _tempDS->minDiffTime, _tempDS->minDuration, _tempDS->maxDuration);
-          sort(_tempDS->singleManeuverList->begin(), _tempDS->singleManeuverList->end(), cmp_sort_first);
-          std::cout << "Maneuver Detection found " << _tempDS->singleManeuverList.size() << " Maneuvers." << std::endl;
-          for(auto temp : _tempDS->singleManeuverList)
-            std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
+          sort(_tempDS->singleManeuverList.begin(), _tempDS->singleManeuverList.end(), cmp_sort_first);
+          std::cout << "Found " << _tempDS->singleManeuverList.size() << " " << _tempDS->name << std::endl;
+          //for(auto temp : _tempDS->singleManeuverList)
+          //  std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
           }
         }
-        
       }
       mdb_txn_abort(txn);
       if (dbi) {
         mdb_dbi_close(env, dbi);
       }
     }
+
+    // Maneuver Detection
+    std::pair<int64_t, int64_t> fullManeuver;
+    std::vector<std::pair<int64_t, int64_t>> fullManeuverList;
+    
+    for(int status_idx = 0; status_idx < maneuver[0]->singleManeuverList.size(); status_idx++) {
+      fullManeuver.second = maneuverDetectorRecursiv(maneuver, 0, status_idx);
+
+      if(fullManeuver.second != -1){
+        fullManeuver.first = maneuver[0]->singleManeuverList[status_idx].first;
+        std::cout << "Maneuver detected! Start: " << fullManeuver.first << ", End: " << fullManeuver.second << std::endl;
+
+        fullManeuverList.push_back(fullManeuver);
+      }
+    }
+    std::cout << "We detected " << fullManeuverList.size() << " Maneuvers." << std::endl;
 
     if (env) {
       mdb_env_close(env);

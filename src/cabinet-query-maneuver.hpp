@@ -163,10 +163,5 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
   return _singleManeuverList;
 }
 
-inline int64_t maneuverDetector() {
-
-  return -1
-}
-
 
 #endif
