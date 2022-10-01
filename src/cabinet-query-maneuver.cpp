@@ -245,7 +245,7 @@ int32_t main(int32_t argc, char **argv) {
           for(DrivingStatus* _DrivingStatus : maneuver) {
             std::clog << "Identification of relevant Areas for " << _DrivingStatus->name << "." << std::endl;
             identifyRelevantMortonBins(_DrivingStatus->fenceBL, _DrivingStatus->fenceTR, &(_DrivingStatus->relevantMorton));
-            std::clog << "Searchmask contains " << relevantMorton.size() << " values." << std::endl;
+            std::clog << "Searchmask contains " << _DrivingStatus->relevantMorton.size() << " values." << std::endl;
           }
 
         }
