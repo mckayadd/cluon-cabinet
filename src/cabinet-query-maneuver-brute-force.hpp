@@ -110,6 +110,7 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
                 int64_t duration = storedKey.timeStamp() - start_TS;
 
                 if(duration) // TODO:
+                  std::cout << "some statement added to fix compile error" << std::endl;
               }
             }
             else
