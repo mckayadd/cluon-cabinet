@@ -206,6 +206,9 @@ target_link_libraries(cabinet-query ${LIBRARIES})
 add_executable(cabinet-query-maneuver ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-query-maneuver.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-query-maneuver ${LIBRARIES})
 
+add_executable(cabinet-query-maneuver-brute-force ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-query-maneuver-brute-force.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
+target_link_libraries(cabinet-query-maneuver-brute-force ${LIBRARIES})
+
 add_executable(cabinet-DumpTrips ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-DumpTrips.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-DumpTrips ${LIBRARIES})
 
