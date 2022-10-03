@@ -48,20 +48,16 @@ inline bool cabinet_dump(const uint64_t &MEM, const std::string &CABINET, const 
     while (cursor.get(&key, &value, MDB_NEXT)) {
       entries++;
 
-      MDB_val keyAll;
-      MDB_val valueAll;
+      MDB_val keyAll = key;
+      MDB_val valueAll = value;
 
       // if we dump another table than "all", we need to look up the actual values from the original "all" table first.
       if (DB != "all") {
         keyAll = key;
 
-        if (MDB_SUCCESS != lmdb::dbi_get(rotxn, dbiAll, &keyAll, &valueAll)) {
+        if (!lmdb::dbi_get(rotxn, dbiAll, &keyAll, &valueAll)) {
           continue;
         }
-      }
-      else {
-        keyAll = key;
-        valueAll = value;
       }
 
       const char *ptr = static_cast<char*>(keyAll.mv_data);
@@ -71,11 +67,9 @@ inline bool cabinet_dump(const uint64_t &MEM, const std::string &CABINET, const 
       val.reserve(storedKey.length());
       if (storedKey.length() > valueAll.mv_size) {
         LZ4_decompress_safe(static_cast<char*>(valueAll.mv_data), val.data(), valueAll.mv_size, val.capacity());
-
       }
       else {
         // Stored value is uncompressed.
-        // recFile.write(static_cast<char*>(val.mv_data), val.mv_size);
         memcpy(val.data(), static_cast<char*>(valueAll.mv_data), valueAll.mv_size);
       }
       std::cout.write(static_cast<char*>(val.data()), storedKey.length());
