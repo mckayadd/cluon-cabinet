@@ -194,6 +194,9 @@ target_link_libraries(cabinet-overview ${LIBRARIES})
 add_executable(cabinet-WGS84toMorton ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-WGS84toMorton.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-WGS84toMorton ${LIBRARIES})
 
+add_executable(cabinet-dump ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-dump.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
+target_link_libraries(cabinet-dump ${LIBRARIES})
+
 add_executable(cabinet-acceltoMorton ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-acceltoMorton.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-acceltoMorton ${LIBRARIES})
 
@@ -242,6 +245,7 @@ install(TARGETS cabinet-stream DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-ls DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-overview DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-WGS84toMorton DESTINATION bin COMPONENT ${PROJECT_NAME})
+install(TARGETS cabinet-dump DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-acceltoMorton DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-WGS84toTrips DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-query DESTINATION bin COMPONENT ${PROJECT_NAME})
