@@ -74,6 +74,16 @@ inline bool cabinet_dump(const uint64_t &MEM, const std::string &CABINET, const 
       }
       std::cout.write(static_cast<char*>(val.data()), storedKey.length());
 
+/* 
+			// Extract an Envelope and its payload on the example for AccelerationReading
+      std::stringstream sstr{std::string(val.data(), storedKey.length())};
+      auto e = cluon::extractEnvelope(sstr);
+      if (e.first && e.second.dataType() == opendlv::proxy::AccelerationReading::ID()) {
+        const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
+        std::cerr << tmp.accelerationX() << ", " << tmp.accelerationY() << std::endl;
+      }
+*/
+
       const int32_t percentage = static_cast<int32_t>((static_cast<float>(entries) * 100.0f) / static_cast<float>(totalEntries));
       if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
         std::clog <<"Processed " << percentage << "% (" << entries << " entries) from " << CABINET << std::endl;
