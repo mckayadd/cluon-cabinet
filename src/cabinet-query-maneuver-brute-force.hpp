@@ -121,7 +121,89 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
     MDB_val value;
     int32_t oldPercentage{-1};
     uint64_t entries{0};
-    
+    while (cursor.get(&key, &value, MDB_NEXT)) {
+      entries++;
+
+      MDB_val keyAll = key;
+      MDB_val valueAll = value;
+
+      // if we dump another table than "all", we need to look up the actual values from the original "all" table first.
+      if (DB != "all") {
+        keyAll = key;
+
+        if (!lmdb::dbi_get(rotxn, dbiAll, &keyAll, &valueAll)) {
+          continue;
+        }
+      }
+
+      const char *ptr = static_cast<char*>(keyAll.mv_data);
+      cabinet::Key storedKey = getKey(ptr, keyAll.mv_size);
+
+      std::vector<char> val;
+      val.reserve(storedKey.length());
+      if (storedKey.length() > valueAll.mv_size) {
+        LZ4_decompress_safe(static_cast<char*>(valueAll.mv_data), val.data(), valueAll.mv_size, val.capacity());
+      }
+      else {
+        // Stored value is uncompressed.
+        memcpy(val.data(), static_cast<char*>(valueAll.mv_data), valueAll.mv_size);
+      }
+      //std::cout.write(static_cast<char*>(val.data()), storedKey.length());
+
+
+      // Extract an Envelope and its payload on the example for AccelerationReading
+      std::stringstream sstr{std::string(val.data(), storedKey.length())};
+      auto e = cluon::extractEnvelope(sstr);
+      if (e.first && e.second.dataType() == _ID) {
+        // const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
+        const auto tmp = cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second));
+
+        if (VERBOSE) std::cerr << tmp.accel_lon() << ", " << tmp.accel_trans() << std::endl;
+
+                                  
+        if(in_fence(_fenceBL, _fenceTR, tmp.accel_lon(), tmp.accel_trans()) == true) {
+          lastInFence_TS = storedKey.timeStamp();
+          lastInFence_accelLon = tmp.accel_lon();
+          lastInFence_accelLat = tmp.accel_trans();
+          
+          if(flag == false) {
+            start_TS = storedKey.timeStamp();
+            flag = true;
+            continue;
+          }
+        }
+        else {
+          int64_t diffToPrev = storedKey.timeStamp() - lastInFence_TS;
+          
+          if(diffToPrev > maneuver[0]->minDiffTime) {
+            int64_t duration = lastInFence_TS - start_TS;
+
+            if(duration > maneuver[0]->maxDuration) { // out of range
+              flag = false; // hier gibt es noch den Fall, dass immer noch das gleiche Manövr detektiert wird und der zweite Teil lang genug ist
+              continue;
+            }
+            if((duration >= maneuver[0]->minDuration) && (duration <= maneuver[0]->maxDuration)) {
+              // hier den nächsten Detektor
+              int64_t end_TS = 0; // detector aufruf
+
+              // end_TS = recursiveManeuverDetector(lastInFence_TS, 1, maneuver);
+
+              if(end_TS != 0){
+                // maneuver speichern (start, end)
+                maneuverDetectedList.push_back(std::make_pair(start_TS, end_TS));
+              }
+              flag = false;
+            }
+          }
+        }
+
+        const int32_t percentage = static_cast<int32_t>((static_cast<float>(entries) * 100.0f) / static_cast<float>(totalEntries));
+        if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
+          std::clog <<"Processed " << percentage << "% (" << entries << " entries) from " << CABINET << std::endl;
+          oldPercentage = percentage;
+        }
+      }
+    }
     cursor.close();
     rotxn.abort();
   }
