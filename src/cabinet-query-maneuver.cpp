@@ -121,11 +121,23 @@ int32_t main(int32_t argc, char **argv) {
             -200000000,
             2000000000,
             160000000);
+    
+    _fenceBL.first = 2; _fenceBL.second = -2;
+    _fenceTR.first = 10; _fenceTR.second = 2;
+    DrivingStatus *harsh_braking = new DrivingStatus( "harsh_braking",
+            _fenceBL,
+            _fenceTR,
+            500000000,
+            3000000000,
+            -200000000,
+            2000000000,
+            160000000);
 
     std::vector<DrivingStatus*> maneuver;
     
-    maneuver.push_back(leftCurve);
-    maneuver.push_back(rightCurve);
+    //maneuver.push_back(leftCurve);
+    //maneuver.push_back(rightCurve);
+    maneuver.push_back(harsh_braking);
 
 ////////////////////////////////////////////////////////////////////////////////
 
