@@ -96,7 +96,6 @@ inline int32_t identifyRelevantMortonBins(const std::pair<float,float> &BoxBL, c
   const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 100.0f);
   const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 100.0f);
 
-  // remove morton values that are not covered by the fence -> only values that are not relevant remain
   int i, j;
   std::pair<float,float> _accelbox;
   uint64_t _morton;
@@ -141,9 +140,7 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
       continue;
     }
 
-    
-
-    if((minDiffTime < std::abs((*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1])) || (i == (_tempDrivingStatusList->size()-1))) {
+    if((minDiffTime < (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1]) || (i == (_tempDrivingStatusList->size()-1))) {
       
       if(i == (_tempDrivingStatusList->size()-1)) _tsEnd = (*_tempDrivingStatusList)[i];
       else _tsEnd = (*_tempDrivingStatusList)[i-1];
@@ -161,6 +158,7 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
       }
 
       _tsStart = (*_tempDrivingStatusList)[i];
+      // TODO: irgendwas mit Start ist kaputt
     }
   }
 

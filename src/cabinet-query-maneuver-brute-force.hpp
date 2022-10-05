@@ -216,8 +216,8 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
 
     std::vector<DrivingStatus*> maneuver;
     
-    //maneuver.push_back(leftCurve);
-    maneuver.push_back(rightCurve);
+    maneuver.push_back(leftCurve);
+    //maneuver.push_back(rightCurve);
     //maneuver.push_back(harsh_braking);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -331,7 +331,6 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
           if(flag == false) {
             start_TS = storedKey.timeStamp();
             flag = true;
-            continue;
           }
         }
         else {
