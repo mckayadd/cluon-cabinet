@@ -21,6 +21,10 @@
 
 int64_t maneuverDetectorRecursiv(std::vector<DrivingStatus*> maneuver, int maneuver_idx, int status_idx) {
   
+  if(maneuver.size() == 1) {
+    return maneuver[maneuver_idx]->singleManeuverList[status_idx].second;
+  }
+
   if( maneuver_idx >= maneuver.size())
     return -1;
 
@@ -122,8 +126,8 @@ int32_t main(int32_t argc, char **argv) {
             2000000000,
             160000000);
     
-    _fenceBL.first = 2; _fenceBL.second = -2;
-    _fenceTR.first = 10; _fenceTR.second = 2;
+    _fenceBL.first = 4; _fenceBL.second = -4;
+    _fenceTR.first = 10; _fenceTR.second = 4;
     DrivingStatus *harsh_braking = new DrivingStatus( "harsh_braking",
             _fenceBL,
             _fenceTR,
@@ -210,7 +214,7 @@ int32_t main(int32_t argc, char **argv) {
         else {
           if (4 == geoboxStrings.size()) { // no geobox argument
 
-            DrivingStatus *_tempDS = new DrivingStatus( "rightCurve",
+            DrivingStatus *_tempDS = new DrivingStatus( "geofence",
                 geoboxBL,
                 geoboxTR,
                 100000000,

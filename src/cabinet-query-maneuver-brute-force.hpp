@@ -113,8 +113,8 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
     auto e = cluon::extractEnvelope(sstr);
     if (e.first && e.second.dataType() == _ID) {
 
-      int64_t _currAccelLon = 0;
-      int64_t _currAccelTrans = 0;
+      float _currAccelLon = 0;
+      float _currAccelTrans = 0;
       if(APLX) {
         const auto tmp = cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second));
         _currAccelLon = tmp.accel_lon();
@@ -125,6 +125,9 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
         _currAccelLon = tmp.accelerationX();
         _currAccelTrans = tmp.accelerationY();
       }
+
+      _currAccelLon = std::lroundf(_currAccelLon * 100.0f) / 100.0f;
+      _currAccelTrans = std::lroundf(_currAccelTrans * 100.0f) / 100.0f;
 
       if(in_fence(_maneuver[_dsID]->fenceBL, _maneuver[_dsID]->fenceTR, _currAccelLon, _currAccelTrans) == true) {
 
@@ -153,7 +156,7 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
             flag = false; // hier gibt es noch den Fall, dass immer noch das gleiche Manövr detektiert wird und der zweite Teil lang genug ist
             continue;
           }
-          if((duration >= _maneuver[_dsID]->minDuration) && (duration <= _maneuver[_dsID]->maxDuration)) {
+          if((duration > _maneuver[_dsID]->minDuration) && (duration < _maneuver[_dsID]->maxDuration)) {
             // hier den nächsten Detektor
 
             cursor.close();
@@ -201,8 +204,8 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
             2000000000,
             160000000);
 
-    _fenceBL.first = 2; _fenceBL.second = -2;
-    _fenceTR.first = 10; _fenceTR.second = 2;
+    _fenceBL.first = 4; _fenceBL.second = -4;
+    _fenceTR.first = 10; _fenceTR.second = 4;
     DrivingStatus *harsh_braking = new DrivingStatus( "harsh_braking",
             _fenceBL,
             _fenceTR,
@@ -303,8 +306,8 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
         // const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
         //const auto tmp = cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second));
 
-        int64_t _currAccelLon = 0;
-        int64_t _currAccelTrans = 0;
+        float _currAccelLon = 0;
+        float _currAccelTrans = 0;
         if(APLX) {
           const auto tmp = cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second));
           _currAccelLon = tmp.accel_lon();
@@ -315,6 +318,9 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
           _currAccelLon = tmp.accelerationX();
           _currAccelTrans = tmp.accelerationY();
         }
+
+        _currAccelLon = std::lroundf(_currAccelLon * 100.0f) / 100.0f;
+        _currAccelTrans = std::lroundf(_currAccelTrans * 100.0f) / 100.0f;
 
         if (VERBOSE) std::cerr << _currAccelLon << ", " << _currAccelTrans << "  : " << storedKey.timeStamp() << std::endl;
 
