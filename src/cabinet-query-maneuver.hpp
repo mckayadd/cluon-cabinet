@@ -141,8 +141,12 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
       continue;
     }
 
+    
+
     if((minDiffTime < std::abs((*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1])) || (i == (_tempDrivingStatusList->size()-1))) {
-      _tsEnd = (*_tempDrivingStatusList)[i-1];
+      
+      if(i == (_tempDrivingStatusList->size()-1)) _tsEnd = (*_tempDrivingStatusList)[i];
+      else _tsEnd = (*_tempDrivingStatusList)[i-1];
       //std::cout << (*_tempDrivingStatusList)[i].second << "; " << (*_tempDrivingStatusList)[i-1].second << "; " << std::abs((*_tempDrivingStatusList)[i].second - (*_tempDrivingStatusList)[i-1].second) << std::endl;
 
       int64_t duration = _tsEnd - _tsStart;
