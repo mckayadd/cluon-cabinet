@@ -129,25 +129,55 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
       _currAccelLon = std::lroundf(_currAccelLon * 100.0f) / 100.0f;
       _currAccelTrans = std::lroundf(_currAccelTrans * 100.0f) / 100.0f;
 
+      int64_t diffToPrev = storedKey.timeStamp() - lastInFence_TS;
+
+      if(diffToPrev > _maneuver[_dsID]->minDiffTime) {
+        if((flag == true) && (lastInFence_TS != 0)){
+          if(_maneuver[_dsID]->minDiffTime <= diffToPrev) {
+            int64_t duration = lastInFence_TS - start_TS;
+            //std::cout << "dur " << start_TS << "; " << lastInFence_TS << std::endl;
+
+            if((duration > _maneuver[_dsID]->minDuration) && (duration < _maneuver[_dsID]->maxDuration)) {
+              cursor.close();
+              return recursiveManeuverDetector(lastInFence_TS, _dsID+1, _maneuver, env, rotxn, APLX);
+            }
+            else {
+              flag = false; // hier gibt es noch den Fall, dass immer noch das gleiche Manövr detektiert wird und der zweite Teil lang genug ist
+            }
+          }
+        }
+      }
+      
       if(in_fence(_maneuver[_dsID]->fenceBL, _maneuver[_dsID]->fenceTR, _currAccelLon, _currAccelTrans) == true) {
+        lastInFence_TS = storedKey.timeStamp();
+        lastInFence_accelLon = _currAccelLon;
+        lastInFence_accelLat = _currAccelTrans;
+
+        if(flag == false) {
+          start_TS = storedKey.timeStamp();
+          flag = true;
+        }
+      }
+
+        //////////////////////////////////////////
+
+      
+      /* int64_t diffToPrev = storedKey.timeStamp() - lastInFence_TS;
+      
+      if(in_fence(_maneuver[_dsID]->fenceBL, _maneuver[_dsID]->fenceTR, _currAccelLon, _currAccelTrans) == true) {
+
+        if((flag == false) || (diffToPrev > _maneuver[_dsID]->minDiffTime)) {
+            start_TS = storedKey.timeStamp();
+            flag = true;
+        }
 
         lastInFence_TS = storedKey.timeStamp();
         lastInFence_accelLon = _currAccelLon;
         lastInFence_accelLat = _currAccelTrans;
-        
-        if(flag == false) {
-          //if(storedKey.timeStamp() > _maxGapTS) break;
-
-          start_TS = storedKey.timeStamp();
-          flag = true;
-          continue;
-        }
       }
       else {
 
         if(flag == false) continue;
-
-        int64_t diffToPrev = storedKey.timeStamp() - lastInFence_TS;
         
         if(_maneuver[_dsID]->minDiffTime < diffToPrev) {
           int64_t duration = lastInFence_TS - start_TS;
@@ -162,7 +192,7 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
             flag = false; // hier gibt es noch den Fall, dass immer noch das gleiche Manövr detektiert wird und der zweite Teil lang genug ist
           }
         }
-      }
+      } */
     }
   }
   cursor.close();
@@ -217,7 +247,7 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
     std::vector<DrivingStatus*> maneuver;
     
     maneuver.push_back(leftCurve);
-    //maneuver.push_back(rightCurve);
+    maneuver.push_back(rightCurve);
     //maneuver.push_back(harsh_braking);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -321,44 +351,46 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
         _currAccelLon = std::lroundf(_currAccelLon * 100.0f) / 100.0f;
         _currAccelTrans = std::lroundf(_currAccelTrans * 100.0f) / 100.0f;
 
-        if (VERBOSE) std::cerr << _currAccelLon << ", " << _currAccelTrans << "  : " << storedKey.timeStamp() << std::endl;
 
+        int64_t diffToPrev = storedKey.timeStamp() - lastInFence_TS;
+
+        if(diffToPrev > maneuver[0]->minDiffTime) {
+          if((flag == true) && (lastInFence_TS != 0)){
+            if(maneuver[0]->minDiffTime <= diffToPrev) {
+              int64_t duration = lastInFence_TS - start_TS;
+              //std::cout << "dur " << start_TS << "; " << lastInFence_TS << std::endl;
+
+              if((duration > maneuver[0]->minDuration) && (duration < maneuver[0]->maxDuration)) {
+                // hier den nächsten Detektor
+                int64_t end_TS = 0; // detector aufruf
+                
+                end_TS = recursiveManeuverDetector(lastInFence_TS, 1, maneuver, env, rotxn, APLX);
+
+                if(end_TS != 0){
+                  //std::cout << "Maneuver" << start_TS << ", " << end_TS << std::endl;
+                  // maneuver speichern (start, end)
+                  maneuverDetectedList.push_back(std::make_pair(start_TS, end_TS));
+                }
+                flag = false;
+              }
+              else {
+                flag = false; // hier gibt es noch den Fall, dass immer noch das gleiche Manövr detektiert wird und der zweite Teil lang genug ist
+              }
+            }
+          }
+        }
+        
         if(in_fence(maneuver[0]->fenceBL, maneuver[0]->fenceTR, _currAccelLon, _currAccelTrans) == true) {
           lastInFence_TS = storedKey.timeStamp();
           lastInFence_accelLon = _currAccelLon;
           lastInFence_accelLat = _currAccelTrans;
-          
+
           if(flag == false) {
             start_TS = storedKey.timeStamp();
             flag = true;
           }
-        }
-        else {
 
-          if(flag == false) continue;
-
-          int64_t diffToPrev = storedKey.timeStamp() - lastInFence_TS;
-          
-          if(maneuver[0]->minDiffTime < diffToPrev) {
-            int64_t duration = lastInFence_TS - start_TS;
-
-            if((duration > maneuver[0]->minDuration) && (duration < maneuver[0]->maxDuration)) {
-              // hier den nächsten Detektor
-              int64_t end_TS = 0; // detector aufruf
-              
-              end_TS = recursiveManeuverDetector(lastInFence_TS, 1, maneuver, env, rotxn, APLX);
-              
-              if(end_TS != 0){
-                //std::cout << "Maneuver" << start_TS << ", " << end_TS << std::endl;
-                // maneuver speichern (start, end)
-                maneuverDetectedList.push_back(std::make_pair(start_TS, end_TS));
-              }
-              flag = false;
-            }
-            else {
-              flag = false; // hier gibt es noch den Fall, dass immer noch das gleiche Manövr detektiert wird und der zweite Teil lang genug ist
-            }
-          }
+          if (VERBOSE) std::cerr << _currAccelLon << ", " << _currAccelTrans << "  : " << storedKey.timeStamp() << std::endl;
         }
 
       }

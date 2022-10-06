@@ -28,8 +28,8 @@ int64_t maneuverDetectorRecursiv(std::vector<DrivingStatus*> maneuver, int maneu
   if( maneuver_idx >= maneuver.size())
     return -1;
 
-  if(maneuver.size() == 1)
-    return -1;
+  //if(maneuver.size() == 1)
+  //  return 0;
 
   // std::cout << "start maneuver Detection: maneuver idx " << maneuver_idx << " status " << status_idx << std::endl;
   
@@ -60,7 +60,7 @@ int64_t maneuverDetectorRecursiv(std::vector<DrivingStatus*> maneuver, int maneu
       if(maneuver_idx == (maneuver.size() - 2)) {
         return nextStatus.second;
       } else {
-        maneuverDetectorRecursiv(maneuver, maneuver_idx + 1, i);
+        return maneuverDetectorRecursiv(maneuver, maneuver_idx + 1, i);
       }
     }
   }
@@ -140,7 +140,7 @@ int32_t main(int32_t argc, char **argv) {
     std::vector<DrivingStatus*> maneuver;
     
     maneuver.push_back(leftCurve);
-    //maneuver.push_back(rightCurve);
+    maneuver.push_back(rightCurve);
     //maneuver.push_back(harsh_braking);
 
 ////////////////////////////////////////////////////////////////////////////////
