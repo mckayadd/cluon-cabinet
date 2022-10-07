@@ -84,7 +84,7 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
   int32_t retCode{0};
   // lambda to check the interaction with the database.
  
-  mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE)
+  mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE);
 
   //while (mdb_cursor_get(cursor, &key, &value, MDB_NEXT_NODUP) == 0) {
   int32_t ent = 0;
