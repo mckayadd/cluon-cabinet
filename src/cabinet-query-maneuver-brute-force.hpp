@@ -286,6 +286,7 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
 
     int32_t oldPercentage{-1};
     uint64_t entries{0};
+    int loadAnimation = 0;
 
     MDB_val key;
     MDB_val value;
@@ -300,6 +301,22 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
         oldPercentage = percentage;
       }
       entries++;
+      if((entries % 20) == 0) {
+        // loading animation
+        if (loadAnimation == 0)
+          std::cout << "\b." << std::flush;
+        else if(loadAnimation == 1)
+          std::cout << "\bo" << std::flush;
+        else if(loadAnimation == 2)
+          std::cout << "\bO" << std::flush;
+        else if(loadAnimation == 3)
+          std::cout << "\bo" << std::flush;
+
+        loadAnimation ++;
+        if(loadAnimation >= 3)
+          loadAnimation = 0;
+      }
+
 
       MDB_val keyAll = key;
       MDB_val valueAll = value;
