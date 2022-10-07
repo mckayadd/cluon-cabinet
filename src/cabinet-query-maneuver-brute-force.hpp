@@ -71,10 +71,25 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
   MDB_val key;
   MDB_val value;
 
+  const uint64_t MAXKEYSIZE = 511;
+  std::vector<char> _key;
+  _key.reserve(MAXKEYSIZE);
+
+  cabinet::Key query;
+  query.timeStamp(_currTS);
+  
+  key.mv_size = setKey(query, _key.data(), _key.capacity());
+  key.mv_data = _key.data();
+
+  int32_t retCode{0};
+  // lambda to check the interaction with the database.
+ 
+  mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE)
+
   //while (mdb_cursor_get(cursor, &key, &value, MDB_NEXT_NODUP) == 0) {
   int32_t ent = 0;
 
-  while (cursor.get(&key, &value, MDB_NEXT)) {
+  while (cursor.get(&key, &value, MDB_NEXT_NODUP)) {
     ent++;
     MDB_val keyAll = key;
     MDB_val valueAll = value;
@@ -93,7 +108,10 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
 
     // make sure, we are in range
     
-    if(storedKey.timeStamp() < _currTS) continue;
+    if(storedKey.timeStamp() < _currTS) {
+      //std::cout << "outof range < " << _currTS << std::endl;
+      continue;
+    }
     if(storedKey.timeStamp() > _maxTS) break; // break;
     
     std::vector<char> val;
@@ -387,6 +405,7 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
                   //std::cout << "Maneuver" << start_TS << ", " << end_TS << std::endl;
                   // maneuver speichern (start, end)
                   maneuverDetectedList.push_back(std::make_pair(start_TS, end_TS));
+                  if (VERBOSE) std::cerr << "Maneuver at " << start_TS << "  : " << end_TS << std::endl;
                 }
                 flag = false;
               }
@@ -406,8 +425,6 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
             start_TS = storedKey.timeStamp();
             flag = true;
           }
-
-          if (VERBOSE) std::cerr << _currAccelLon << ", " << _currAccelTrans << "  : " << storedKey.timeStamp() << std::endl;
         }
 
       }
