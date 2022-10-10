@@ -15,33 +15,16 @@
 #include "lmdb.h"
 #include "morton.hpp"
 #include "opendlv-standard-message-set.hpp"
+#include "DrivingStatus.hpp"
+
+#include <cstdio>
+#include <cstring>
+#include <cstdint>
 
 #include <iostream>
-#include <sstream>
+#include <iomanip>
 #include <string>
 
-
-inline int32_t identifyNonRelevantMortonBins(const std::pair<float,float> &BoxBL, const std::pair<float,float> &BoxTR, std::vector<std::pair<float,float>> *_nonRelevantMortonBins) {
-  int32_t retCode{0};
-
-  // const uint32_t _xBL = std::lroundf((BoxBL.first + 10.0f) * 10000.0f);
-  // const uint32_t _yBL = std::lround((BoxBL.second + 10.0f) * 10000.0f);
-  // const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 10000.0f);
-  // const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 10000.0f);
-
-  // if(((_xTR-_xBL) < 10000) & ((_yTR-_yBL) < 10000)) {
-  //   std::pair<float,float> _temp;
-  //   _temp.first = .first/10000.0f - 10.0f;
-  //   _nonRelevantMortonBins->push_back()
-  //   return retCode;
-  // }
-
-  // if(((_xTR-_xBL) >= 10000)) {
-  //   identifyNonRelevantMortonBins()
-  // }
-
-  return retCode;
-}
 
 inline int32_t singleNonRelevantMortonBin(const std::pair<float,float> &BoxBL, const std::pair<float,float> &BoxTR, std::vector<uint64_t> * _nonRelevantMorton) {
   int32_t retCode{0};

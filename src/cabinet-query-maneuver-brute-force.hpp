@@ -84,7 +84,7 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
   int32_t retCode{0};
   // lambda to check the interaction with the database.
  
-  mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE)
+  mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE);
 
   //while (mdb_cursor_get(cursor, &key, &value, MDB_NEXT_NODUP) == 0) {
   int32_t ent = 0;
@@ -179,38 +179,6 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
 
         //////////////////////////////////////////
 
-      
-      /* int64_t diffToPrev = storedKey.timeStamp() - lastInFence_TS;
-      
-      if(in_fence(_maneuver[_dsID]->fenceBL, _maneuver[_dsID]->fenceTR, _currAccelLon, _currAccelTrans) == true) {
-
-        if((flag == false) || (diffToPrev > _maneuver[_dsID]->minDiffTime)) {
-            start_TS = storedKey.timeStamp();
-            flag = true;
-        }
-
-        lastInFence_TS = storedKey.timeStamp();
-        lastInFence_accelLon = _currAccelLon;
-        lastInFence_accelLat = _currAccelTrans;
-      }
-      else {
-
-        if(flag == false) continue;
-        
-        if(_maneuver[_dsID]->minDiffTime < diffToPrev) {
-          int64_t duration = lastInFence_TS - start_TS;
-
-          if((duration > _maneuver[_dsID]->minDuration) && (duration < _maneuver[_dsID]->maxDuration)) {
-            // hier den nächsten Detektor
-
-            cursor.close();
-            return recursiveManeuverDetector(lastInFence_TS, _dsID+1, _maneuver, env, rotxn, APLX);
-          }
-          else {
-            flag = false; // hier gibt es noch den Fall, dass immer noch das gleiche Manövr detektiert wird und der zweite Teil lang genug ist
-          }
-        }
-      } */
     }
   }
   cursor.close();
@@ -221,7 +189,7 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
 }
 
 
-inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::string &CABINET, const std::string &MORTONCABINET, const bool &APLX, const bool &VERBOSE, const std::pair<float,float> _fenceBL, const std::pair<float,float> _fenceTR) {
+inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::string &CABINET, const std::string &MORTONCABINET, const bool &APLX, const bool &VERBOSE, const std::pair<float,float> _fenceBL, const std::pair<float,float> _fenceTR, std::vector<DrivingStatus*> maneuver) {
   bool failed{false};
   try {
 
@@ -229,44 +197,7 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
     std::pair<float,float> _fenceTR;
 
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    _fenceBL.first = -1.5; _fenceBL.second = 0.75;
-    _fenceTR.first = 0.75; _fenceTR.second = 5;
-    DrivingStatus *leftCurve  = new DrivingStatus( "leftCurve",
-            _fenceBL,
-            _fenceTR,
-            500000000,
-            3000000000,
-            -200000000,
-            2000000000,
-            160000000);
-
-    _fenceBL.first = -1.5; _fenceBL.second = -5;
-    _fenceTR.first = 0.75; _fenceTR.second = -0.75;
-    DrivingStatus *rightCurve = new DrivingStatus( "rightCurve",
-            _fenceBL,
-            _fenceTR,
-            500000000,
-            3000000000,
-            -200000000,
-            2000000000,
-            160000000);
-
-    _fenceBL.first = 4; _fenceBL.second = -4;
-    _fenceTR.first = 10; _fenceTR.second = 4;
-    DrivingStatus *harsh_braking = new DrivingStatus( "harsh_braking",
-            _fenceBL,
-            _fenceTR,
-            500000000,
-            3000000000,
-            -200000000,
-            2000000000,
-            160000000);
-
-    std::vector<DrivingStatus*> maneuver;
     
-    maneuver.push_back(leftCurve);
-    maneuver.push_back(rightCurve);
-    //maneuver.push_back(harsh_braking);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -319,21 +250,21 @@ inline bool cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::stri
         oldPercentage = percentage;
       }
       entries++;
-      if((entries % 20) == 0) {
-        // loading animation
-        if (loadAnimation == 0)
-          std::cout << "\b." << std::flush;
-        else if(loadAnimation == 1)
-          std::cout << "\bo" << std::flush;
-        else if(loadAnimation == 2)
-          std::cout << "\bO" << std::flush;
-        else if(loadAnimation == 3)
-          std::cout << "\bo" << std::flush;
+      // if((entries % 20) == 0) {
+      //   // loading animation
+      //   if (loadAnimation == 0)
+      //     std::cout << "\b." << std::flush;
+      //   else if(loadAnimation == 1)
+      //     std::cout << "\bo" << std::flush;
+      //   else if(loadAnimation == 2)
+      //     std::cout << "\bO" << std::flush;
+      //   else if(loadAnimation == 3)
+      //     std::cout << "\bo" << std::flush;
 
-        loadAnimation ++;
-        if(loadAnimation >= 3)
-          loadAnimation = 0;
-      }
+      //   loadAnimation ++;
+      //   if(loadAnimation >= 3)
+      //     loadAnimation = 0;
+      // }
 
 
       MDB_val keyAll = key;

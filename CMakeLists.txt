@@ -215,6 +215,9 @@ target_link_libraries(cabinet-query-maneuver-brute-force ${LIBRARIES})
 add_executable(cabinet-DumpTrips ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-DumpTrips.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-DumpTrips ${LIBRARIES})
 
+add_executable(cabinet-SFC-query-experiment ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-SFC-query-experiment.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
+target_link_libraries(cabinet-SFC-query-experiment ${LIBRARIES})
+
 ################################################################################
 enable_testing()
 add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-key.cpp ${GENERATED_HEADERS})
