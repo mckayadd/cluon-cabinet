@@ -176,6 +176,11 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
           flag = true;
         }
       }
+      else {
+        if((flag == false) && storedKey.timeStamp() > _maxGapTS) {
+          break;
+        }
+      }
 
         //////////////////////////////////////////
 

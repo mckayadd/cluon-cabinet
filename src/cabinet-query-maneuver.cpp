@@ -230,8 +230,8 @@ int32_t identifyManeuversSFC(char **argv, const std::string CABINET, const uint6
         _tempDS->singleManeuverList = detectSingleManeuver(&_tempDrivingStatusList, _tempDS->minDiffTime, _tempDS->minDuration, _tempDS->maxDuration);
         sort(_tempDS->singleManeuverList.begin(), _tempDS->singleManeuverList.end(), cmp_sort_first);
         std::cout << "Found " << _tempDS->singleManeuverList.size() << " " << _tempDS->name << std::endl;
-        //for(auto temp : _tempDS->singleManeuverList)
-        //  std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
+        for(auto temp : _tempDS->singleManeuverList)
+          std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
         }
       }
     }
