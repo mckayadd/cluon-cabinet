@@ -154,8 +154,8 @@ inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std
           if(_maneuver[_dsID]->minDiffTime <= diffToPrev) {
             int64_t duration = lastInFence_TS - start_TS;
 
-            std::cout << "dur: " << duration << "(" << start_TS << "; " << lastInFence_TS << ")" << std::endl;
-            std::cout << _currAccelLon << "; " << _currAccelTrans << std::endl;
+            //std::cout << "dur: " << duration << "(" << start_TS << "; " << lastInFence_TS << ")" << std::endl;
+            //std::cout << _currAccelLon << "; " << _currAccelTrans << std::endl;
 
             if((duration > _maneuver[_dsID]->minDuration) && (duration < _maneuver[_dsID]->maxDuration)) {
               cursor.close();
