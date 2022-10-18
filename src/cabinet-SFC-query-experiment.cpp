@@ -24,10 +24,11 @@
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
-  if ( (0 == commandlineArguments.count("cab"))) {
+  if ( (0 == commandlineArguments.count("cab_bf")) || (0 == commandlineArguments.count("cab_sfc"))) {
     std::cerr << argv[0] << " query a cabinet (an lmdb-based key/value-database)." << std::endl;
     std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab [--mem=32024] --geobox=bottom-left-latitude,bottom-left-longitude,top-right-latitude,top-right-longitude" << std::endl;
-    std::cerr << "         --cab:    name of the database file" << std::endl;
+    std::cerr << "         --cab_bf:    name of the database file for BruteForce query" << std::endl;
+    std::cerr << "         --cab_sfc:    name of the database file for SFC query" << std::endl;
     std::cerr << "         --mem:    upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
     std::cerr << "         --thr:    lower threshold in morton space e.g. 31634000000 or 33400000000 (emergency braking); alternative to --geobox (thr is prioritized)" << std::endl;
     std::cerr << "         --geobox: return all timeStamps for GPS locations within this rectangle specified by bottom-left and top-right lat/longs" << std::endl;
@@ -35,7 +36,8 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab --geobox=57.679000,12.309931,57.679690,12.312700" << std::endl;
     retCode = 1;
   } else {    
-    const std::string CABINET{commandlineArguments["cab"]};
+    const std::string CABINET{commandlineArguments["cab_bf"]};
+    const std::string CABINET_SFC{commandlineArguments["cab_sfc"]};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
     const bool VERBOSE{commandlineArguments["verbose"].size() != 0};
     const uint64_t THR{(commandlineArguments.count("thr") != 0) ? static_cast<uint64_t>(std::stol(commandlineArguments["thr"])) : 0};
@@ -98,7 +100,23 @@ int32_t main(int32_t argc, char **argv) {
 ////////////////////////////////////////////////////////////////////////////////
 
     std::vector<std::pair<int64_t, int64_t>> detection_BF = cabinet_queryManeuverBruteForce(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
-    std::vector<std::pair<int64_t, int64_t>> detection_SFC = identifyManeuversSFC(argv, CABINET, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver);
+    std::vector<std::pair<int64_t, int64_t>> detection_SFC = identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver);
+
+
+    compareManeuverLists(detection_BF, detection_SFC);
+
+////////////////////////////////////////////////////////////////////////////////
+// Output all
+
+    for(auto _temp : detection_BF) {
+      std::cout << "BF:  Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
+    }
+    for(auto _temp : detection_SFC) {
+      std::cout << "SFC: Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
+    }
+
+    std::cout << "BF:  We detected " << detection_BF.size() << " Maneuvers" << std::endl;
+    std::cout << "SFC: We detected " << detection_BF.size() << " Maneuvers" << std::endl;
 
   }
   return retCode;

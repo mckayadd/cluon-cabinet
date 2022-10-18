@@ -23,7 +23,9 @@
 #include <string>
 
 
+inline void compareManeuverLists(std::vector<std::pair<int64_t, int64_t>> detection_BF, std::vector<std::pair<int64_t, int64_t>> detection_SFC) {
 
+}
 
 
 #endif
