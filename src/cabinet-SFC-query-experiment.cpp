@@ -14,6 +14,8 @@
 #include <cstring>
 #include <cstdint>
 
+#include <chrono>
+
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -99,9 +101,15 @@ int32_t main(int32_t argc, char **argv) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+    auto start = std::chrono::high_resolution_clock::now();
     std::vector<std::pair<int64_t, int64_t>> detection_BF = cabinet_queryManeuverBruteForce(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
+    auto end = std::chrono::high_resolution_clock::now();
+    int64_t duration_BF = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+    
+    start = std::chrono::high_resolution_clock::now();
     std::vector<std::pair<int64_t, int64_t>> detection_SFC = identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver);
-
+    end = std::chrono::high_resolution_clock::now();
+    int64_t duration_SFC = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 
     std::vector<std::pair<int64_t, int64_t>>false_negatives = getFalseNegatives(detection_BF, detection_SFC);
     std::vector<std::pair<int64_t, int64_t>>false_positives = getFalsePositives(detection_BF, detection_SFC);
@@ -119,11 +127,15 @@ int32_t main(int32_t argc, char **argv) {
     std::cout << "BF:  We detected " << detection_BF.size() << " Maneuvers" << std::endl;
     std::cout << "SFC: We detected " << detection_SFC.size() << " Maneuvers" << std::endl;
 
-    std::cout << std::endl;
+    std::cout << "Effectivity" << std::endl;
 
     std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << (detection_BF.size()-false_negatives.size())/detection_BF.size() * 100 << "%)" <<" elements are detected by SFC-query" << std::endl;
     std::cout << "(" << false_positives.size() << " false positives) : " << false_positives.size() << " elements are additionally detected by SFC-query." << std::endl;
 
+    std::cout << "Efficiency" << std::endl;
+
+    std::cout << "BF : " << duration_BF << " ms" << std::endl;
+    std::cout << "SFC: " << duration_SFC << " ms" << std::endl;
   }
   return retCode;
 }
