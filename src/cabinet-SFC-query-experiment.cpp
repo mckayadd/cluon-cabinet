@@ -7,7 +7,7 @@
  */
 
 #include "cluon-complete.hpp"
-#include "cabinet-query-maneuver.hpp"
+#include "cabinet-SFC-query-experiment.hpp"
 #include "DrivingStatus.hpp"
 
 #include <cstdio>
@@ -29,17 +29,28 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab [--mem=32024] --geobox=bottom-left-latitude,bottom-left-longitude,top-right-latitude,top-right-longitude" << std::endl;
     std::cerr << "         --cab:    name of the database file" << std::endl;
     std::cerr << "         --mem:    upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
+    std::cerr << "         --thr:    lower threshold in morton space e.g. 31634000000 or 33400000000 (emergency braking); alternative to --geobox (thr is prioritized)" << std::endl;
+    std::cerr << "         --geobox: return all timeStamps for GPS locations within this rectangle specified by bottom-left and top-right lat/longs" << std::endl;
     std::cerr << "         --aplx:   Applenix data required (e.g. Snowfox)? default: no (e.g. Voyager)" << std::endl;
-    std::cerr << "         --sglThr:   whether singleThread is require default: mutlithread" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab --geobox=57.679000,12.309931,57.679690,12.312700" << std::endl;
     retCode = 1;
   } else {    
     const std::string CABINET{commandlineArguments["cab"]};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
     const bool VERBOSE{commandlineArguments["verbose"].size() != 0};
+    const uint64_t THR{(commandlineArguments.count("thr") != 0) ? static_cast<uint64_t>(std::stol(commandlineArguments["thr"])) : 0};
+    const std::string GEOBOX{commandlineArguments["geobox"]};
     const bool APLX{commandlineArguments["aplx"].size() != 0};
-    const bool SGLTHR{commandlineArguments["sglThr"].size() != 0};
-    
+    std::vector<std::string> geoboxStrings = stringtoolbox::split(GEOBOX, ',');
+    std::pair<float,float> geoboxBL;
+    std::pair<float,float> geoboxTR;
+    if (4 == geoboxStrings.size()) {
+      geoboxBL.first = std::stof(geoboxStrings.at(0));
+      geoboxBL.second = std::stof(geoboxStrings.at(1));
+      geoboxTR.first = std::stof(geoboxStrings.at(2));
+      geoboxTR.second = std::stof(geoboxStrings.at(3));
+    }
+
     std::pair<float,float> _fenceBL;
     std::pair<float,float> _fenceTR;
 
@@ -86,6 +97,9 @@ int32_t main(int32_t argc, char **argv) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-  return retCode;
+    std::vector<std::pair<int64_t, int64_t>> detection_BF = cabinet_queryManeuverBruteForce(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
+    std::vector<std::pair<int64_t, int64_t>> detection_SFC = identifyManeuversSFC(argv, CABINET, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver);
+
   }
+  return retCode;
 }

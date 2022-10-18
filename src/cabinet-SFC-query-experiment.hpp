@@ -15,6 +15,8 @@
 #include "lmdb.h"
 #include "morton.hpp"
 #include "opendlv-standard-message-set.hpp"
+#include "cabinet-query-maneuver-brute-force.hpp"
+#include "cabinet-query-maneuver.hpp"
 
 #include <iostream>
 #include <sstream>

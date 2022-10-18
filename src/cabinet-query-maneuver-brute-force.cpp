@@ -20,7 +20,6 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << argv[0] << " traverse table 'all' of a cabinet (an lmdb-based key/value-database) to convert Acceleration messages (1030/?) to Morton index." << std::endl;
     std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab [--out=myStore.cab-accel-Morton] [--mem=32024] [--verbose]" << std::endl;
     std::cerr << "         --cab:     name of the database file" << std::endl;
-    std::cerr << "         --out:     name of the database file to be created from the converted Morton codes" << std::endl;
     std::cerr << "         --mem:     upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
     std::cerr << "         --geobox: return all timeStamps for GPS locations within this rectangle specified by bottom-left and top-right lat/longs" << std::endl;
     std::cerr << "         --aplx:    Applenix data required (e.g. Snowfox)? default: no (e.g. Voyager)" << std::endl;
@@ -29,7 +28,6 @@ int32_t main(int32_t argc, char **argv) {
     retCode = 1;
   } else {
     const std::string CABINET{commandlineArguments["cab"]};
-    const std::string MORTONCABINET{(commandlineArguments["out"].size() != 0) ? commandlineArguments["out"] : CABINET + "-accel-Morton"};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
     const std::string GEOBOX{commandlineArguments["geobox"]};
     const bool APLX{(commandlineArguments["aplx"].size() != 0)};
@@ -87,7 +85,14 @@ int32_t main(int32_t argc, char **argv) {
 
     ////////////////////////////////////////////////////////////////////////////////
 
-    retCode = cabinet_queryManeuverBruteForce(MEM, CABINET, MORTONCABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
+    std::vector<std::pair<int64_t, int64_t>> detectionBF = cabinet_queryManeuverBruteForce(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
+  
+    for(auto _temp : detectionBF) {
+      std::cout << "BF: Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
+    }
+    std::cout << "BF: We detected " << detectionBF.size() << " Maneuvers" << std::endl;
+
   }
   return retCode;
 }
+

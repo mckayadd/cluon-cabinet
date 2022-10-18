@@ -10,7 +10,7 @@
 #define DRIVINGSTATUS_HPP
 
 #include "cluon-complete.hpp"
-#include "cabinet-query-maneuver.hpp"
+//#include "cabinet-query-maneuver.hpp"
 
 #include <cstdio>
 #include <cstring>
