@@ -103,7 +103,8 @@ int32_t main(int32_t argc, char **argv) {
     std::vector<std::pair<int64_t, int64_t>> detection_SFC = identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver);
 
 
-    compareManeuverLists(detection_BF, detection_SFC);
+    std::vector<std::pair<int64_t, int64_t>>false_negatives = getFalseNegatives(detection_BF, detection_SFC);
+    std::vector<std::pair<int64_t, int64_t>>false_positives = getFalsePositives(detection_BF, detection_SFC);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Output all
@@ -116,7 +117,12 @@ int32_t main(int32_t argc, char **argv) {
     }
 
     std::cout << "BF:  We detected " << detection_BF.size() << " Maneuvers" << std::endl;
-    std::cout << "SFC: We detected " << detection_BF.size() << " Maneuvers" << std::endl;
+    std::cout << "SFC: We detected " << detection_SFC.size() << " Maneuvers" << std::endl;
+
+    std::cout << std::endl;
+
+    std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << (detection_BF.size()-false_negatives.size())/detection_BF.size() * 100 << "%)" <<" elements are detected by SFC-query" << std::endl;
+    std::cout << "(" << false_positives.size() << " false positives) : " << false_positives.size() << " elements are additionally detected by SFC-query." << std::endl;
 
   }
   return retCode;
