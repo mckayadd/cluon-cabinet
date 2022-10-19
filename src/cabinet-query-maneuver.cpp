@@ -65,7 +65,7 @@ int32_t main(int32_t argc, char **argv) {
             3000000000,
             -200000000,
             2000000000,
-            160000000);
+            50000000);
 
     _fenceBL.first = -1.5; _fenceBL.second = -5;
     _fenceTR.first = 0.75; _fenceTR.second = -0.75;
@@ -76,7 +76,7 @@ int32_t main(int32_t argc, char **argv) {
             3000000000,
             -200000000,
             2000000000,
-            160000000);
+            50000000);
     
     _fenceBL.first = 4; _fenceBL.second = -4;
     _fenceTR.first = 10; _fenceTR.second = 4;
@@ -87,7 +87,7 @@ int32_t main(int32_t argc, char **argv) {
             3000000000,
             -200000000,
             2000000000,
-            160000000);
+            50000000);
 
     std::vector<DrivingStatus*> maneuver;
     

@@ -27,6 +27,8 @@ inline std::vector<std::pair<int64_t, int64_t>> getFalseNegatives(std::vector<st
 
     std::vector<std::pair<int64_t, int64_t>> false_negatives;
 
+    if(detection_BF.empty() || detection_SFC.empty()) return false_negatives;
+
     //check, whether all elements of BF are also detected by morton (true positives and false positives)
     for(std::pair<int64_t, int64_t> temp : detection_BF){
         if(std::find(detection_SFC.begin(), detection_SFC.end(), temp) != detection_SFC.end()) {
@@ -44,7 +46,9 @@ inline std::vector<std::pair<int64_t, int64_t>> getFalsePositives(std::vector<st
 
     std::vector<std::pair<int64_t, int64_t>> false_positives;
 
-    //check, whether all elements of BF are also detected by morton (true positives and false positives)
+    if(detection_BF.empty() || detection_SFC.empty()) return false_positives;
+
+    //check, whether more elements are also detected by morton than BF (false positives)
     for(std::pair<int64_t, int64_t> temp : detection_SFC){
         if(std::find(detection_BF.begin(), detection_BF.end(), temp) != detection_BF.end()) {
             /* contained*/

@@ -21,8 +21,6 @@
 #include <string>
 
 
-
-
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
@@ -69,7 +67,7 @@ int32_t main(int32_t argc, char **argv) {
             3000000000,
             -200000000,
             2000000000,
-            160000000);
+            50000000);
 
     _fenceBL.first = -1.5; _fenceBL.second = -5;
     _fenceTR.first = 0.75; _fenceTR.second = -0.75;
@@ -80,7 +78,7 @@ int32_t main(int32_t argc, char **argv) {
             3000000000,
             -200000000,
             2000000000,
-            160000000);
+            50000000);
     
     _fenceBL.first = 4; _fenceBL.second = -4;
     _fenceTR.first = 10; _fenceTR.second = 4;
@@ -91,7 +89,7 @@ int32_t main(int32_t argc, char **argv) {
             3000000000,
             -200000000,
             2000000000,
-            160000000);
+            50000000);
 
     std::vector<DrivingStatus*> maneuver;
     
@@ -111,17 +109,21 @@ int32_t main(int32_t argc, char **argv) {
     end = std::chrono::high_resolution_clock::now();
     int64_t duration_SFC = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 
+
     std::vector<std::pair<int64_t, int64_t>>false_negatives = getFalseNegatives(detection_BF, detection_SFC);
     std::vector<std::pair<int64_t, int64_t>>false_positives = getFalsePositives(detection_BF, detection_SFC);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Output all
-
-    for(auto _temp : detection_BF) {
-      std::cout << "BF:  Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
+    if(!detection_BF.empty()) {
+      for(auto _temp : detection_BF) {
+        std::cout << "BF:  Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
+      }
     }
-    for(auto _temp : detection_SFC) {
-      std::cout << "SFC: Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
+    if(!detection_SFC.empty()) {
+      for(auto _temp : detection_SFC) {
+        std::cout << "SFC: Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
+      }
     }
 
     std::cout << "BF:  We detected " << detection_BF.size() << " Maneuvers" << std::endl;
@@ -129,7 +131,11 @@ int32_t main(int32_t argc, char **argv) {
 
     std::cout << "Effectivity" << std::endl;
 
-    std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << (detection_BF.size()-false_negatives.size())/detection_BF.size() * 100 << "%)" <<" elements are detected by SFC-query" << std::endl;
+    if(detection_BF.size() != 0)
+      std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << (detection_BF.size()-false_negatives.size())/detection_BF.size() * 100 << "%)" <<" elements are detected by SFC-query" << std::endl;
+    else
+      std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() << " elements are detected by SFC-query" << std::endl;
+
     std::cout << "(" << false_positives.size() << " false positives) : " << false_positives.size() << " elements are additionally detected by SFC-query." << std::endl;
 
     std::cout << "Efficiency" << std::endl;

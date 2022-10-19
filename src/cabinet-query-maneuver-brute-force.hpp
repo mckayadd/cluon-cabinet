@@ -32,7 +32,7 @@
     return false;
   }
 
-  inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std::vector<DrivingStatus*> _maneuver, MDB_env* env, MDB_txn* rotxn, const bool &APLX) {
+  inline int64_t recursiveManeuverDetector(const int64_t _ts, const int _dsID, std::vector<DrivingStatus*> _maneuver, MDB_env* env, MDB_txn* rotxn, const bool &APLX, const bool &VERBOSE) {
 
     if(_dsID >= (_maneuver.size())) {
       return _ts;
@@ -115,6 +115,8 @@
         continue;
       }
       if(storedKey.timeStamp() > _maxTS) break; // break;
+
+      //std::cout << "in range " << _ts << "; " << _currTS << "; " << storedKey.timeStamp() << std::endl;
       
       std::vector<char> val;
       val.reserve(storedKey.length());
@@ -151,23 +153,30 @@
 
         int64_t diffToPrev = storedKey.timeStamp() - lastInFence_TS;
 
+        // std::cout << storedKey.timeStamp() << "; " << _currAccelLon << "; " << _currAccelTrans << std::endl;
+
         if(diffToPrev > _maneuver[_dsID]->minDiffTime) {
           if((flag == true) && (lastInFence_TS != 0)){
-            if(_maneuver[_dsID]->minDiffTime <= diffToPrev) {
+            //if(_maneuver[_dsID]->minDiffTime <= diffToPrev) {
               int64_t duration = lastInFence_TS - start_TS;
 
               //std::cout << "dur: " << duration << "(" << start_TS << "; " << lastInFence_TS << ")" << std::endl;
-              //std::cout << _currAccelLon << "; " << _currAccelTrans << std::endl;
+              //std::cout << _ts << "; " << _currAccelLon << "; " << _currAccelTrans << std::endl;
 
               if((duration > _maneuver[_dsID]->minDuration) && (duration < _maneuver[_dsID]->maxDuration)) {
+                if (VERBOSE) std::cerr << "Maneuver Stage " << _dsID << " " << start_TS << "  : " << lastInFence_TS << std::endl;
                 cursor.close();
-                return recursiveManeuverDetector(lastInFence_TS, _dsID+1, _maneuver, env, rotxn, APLX);
+                return recursiveManeuverDetector(lastInFence_TS, _dsID+1, _maneuver, env, rotxn, APLX, VERBOSE);
               }
               else {
                 flag = false; // hier gibt es noch den Fall, dass immer noch das gleiche Manövr detektiert wird und der zweite Teil lang genug ist
               }
-            }
+            //}
+          } else {
+            //flag = false;
           }
+        } else { // too many outliers
+          //flag = false;
         }
         
         if(in_fence(_maneuver[_dsID]->fenceBL, _maneuver[_dsID]->fenceTR, _currAccelLon, _currAccelTrans) == true) {
@@ -331,7 +340,7 @@
 
           if(diffToPrev > maneuver[0]->minDiffTime) {
             if((flag == true) && (lastInFence_TS != 0)){
-              if(maneuver[0]->minDiffTime <= diffToPrev) {
+              //if(maneuver[0]->minDiffTime <= diffToPrev) {
                 int64_t duration = lastInFence_TS - start_TS;
                 //std::cout << "dur " << start_TS << "; " << lastInFence_TS << std::endl;
 
@@ -339,21 +348,25 @@
                   // hier den nächsten Detektor
                   int64_t end_TS = 0; // detector aufruf
                   
-                  end_TS = recursiveManeuverDetector(lastInFence_TS, 1, maneuver, env, rotxn, APLX);
+                  end_TS = recursiveManeuverDetector(lastInFence_TS, 1, maneuver, env, rotxn, APLX, VERBOSE);
 
                   if(end_TS != 0){
-                    //std::cout << "Maneuver" << start_TS << ", " << end_TS << std::endl;
+                    //std::cout << "Maneuver " << start_TS << ", " << lastInFence_TS << std::endl;
                     // maneuver speichern (start, end)
                     maneuverDetectedList.push_back(std::make_pair(start_TS, end_TS));
-                    if (VERBOSE) std::cerr << "Maneuver at " << start_TS << "  : " << end_TS << std::endl;
+                    if (VERBOSE) std::cerr << "Maneuver at " << start_TS << "  : " << lastInFence_TS << std::endl;
                   }
                   flag = false;
                 }
                 else {
                   flag = false; // hier gibt es noch den Fall, dass immer noch das gleiche Manövr detektiert wird und der zweite Teil lang genug ist
                 }
-              }
+              //}
+            } else {
+              // flag = false;
             }
+          } else {
+            //flag = false;
           }
           
           if(in_fence(maneuver[0]->fenceBL, maneuver[0]->fenceTR, _currAccelLon, _currAccelTrans) == true) {

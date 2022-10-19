@@ -78,6 +78,9 @@ inline int32_t identifyRelevantMortonBins(const std::pair<float,float> &BoxBL, c
   const uint32_t _xTR = std::lroundf((BoxTR.first + 10.0f) * 100.0f);
   const uint32_t _yTR = std::lround((BoxTR.second + 10.0f) * 100.0f);
 
+  //std::cout << BoxBL.first << ", " << _xBL << "; " << BoxBL.second << ", " << _yBL << std::endl;
+  //std::cout << BoxTR.first << ", " << _xTR << "; " << BoxTR.second << ", " << _yTR << std::endl;
+
   int i, j;
   std::pair<float,float> _accelbox;
   uint64_t _morton;
@@ -87,7 +90,8 @@ inline int32_t identifyRelevantMortonBins(const std::pair<float,float> &BoxBL, c
       _accelbox.second = i/100.0f - 10.0f;
       _morton = convertAccelLonTransToMorton(_accelbox);
       _relevantMorton->push_back(_morton);
-      //std::cout << _morton << std::endl;
+      //if(_morton == 2485778)
+      //  std::cout << _morton << "; (" << j << ", " << i << ") ; " << _accelbox.first << "," << _accelbox.second  << std::endl;
     }
   }
 
@@ -122,14 +126,17 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
       continue;
     }
 
+    //if(((*_tempDrivingStatusList)[i] >= 1590992666780594000) && ((*_tempDrivingStatusList)[i] <= 1590992667650156000))
+    //std::cout << (*_tempDrivingStatusList)[i] << "; " << (*_tempDrivingStatusList)[i-1] << "; " << (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1] << std::endl;
+
     if((minDiffTime < (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1]) || (i == (_tempDrivingStatusList->size()-1))) {
       
       if(i == (_tempDrivingStatusList->size()-1)) _tsEnd = (*_tempDrivingStatusList)[i];
       else _tsEnd = (*_tempDrivingStatusList)[i-1];
-      //std::cout << (*_tempDrivingStatusList)[i].second << "; " << (*_tempDrivingStatusList)[i-1].second << "; " << std::abs((*_tempDrivingStatusList)[i].second - (*_tempDrivingStatusList)[i-1].second) << std::endl;
 
+      
       int64_t duration = _tsEnd - _tsStart;
-      // std::cout << duration << "; " << (*_tempDrivingStatusList)[i].second << "; " << abs((*_tempDrivingStatusList)[i].second - (*_tempDrivingStatusList)[i-1].second) << std::endl;
+      //std::cout << duration << "; " << (*_tempDrivingStatusList)[i] << "; " << abs((*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1]) << std::endl;
       
       if((duration > minDuration) && (duration < maxduration)) {
         std::pair<int64_t,int64_t> _tempMan;
@@ -164,6 +171,9 @@ inline int64_t maneuverDetectorRecursiv(std::vector<DrivingStatus*> maneuver, in
   
   DrivingStatus* currentManeuver = maneuver[maneuver_idx];
   DrivingStatus* nextManeuver = maneuver[maneuver_idx + 1];
+
+  if(nextManeuver->singleManeuverList.size() == 0)
+    return -1;
 
   std::pair<int64_t,int64_t> currentStatus = currentManeuver->singleManeuverList[status_idx];
 
@@ -309,6 +319,10 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
 
           for (uint64_t _relevantMorton : _tempDS->relevantMorton) {
 
+            //auto decodedAccel = convertMortonToAccelLonTrans(_relevantMorton);
+            //std::cout << std::setprecision(10) << decodedAccel.first << ";" << decodedAccel.second << std::endl;
+            
+
             key.mv_size = sizeof(_relevantMorton);
             auto _temp_relevantMorton = htobe64(_relevantMorton);
             key.mv_data = &_temp_relevantMorton;
@@ -345,10 +359,11 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
                   const char *ptr = static_cast<char*>(value.mv_data);
                   std::memcpy(&timeStamp, ptr, value.mv_size);
                   timeStamp = be64toh(timeStamp);
-                  if (VERBOSE) {
-                    std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
-                    std::cout << std::setprecision(10) << decodedAccel.first << ";" << decodedAccel.second << ";" << timeStamp << std::endl;
-                  }
+                  //if (VERBOSE) {
+                  //  std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
+                  //if((timeStamp >= 1590992666780594000) && (timeStamp <= 1590992667650156000))
+                  //  std::cout << timeStamp << "; " << morton << "; " << decodedAccel.first << "; " << decodedAccel.second << std::endl;
+                  //}
                   
                   //store morton timeStamp combo
                   // std::pair<uint64_t,int64_t> _mortonTS;
@@ -365,9 +380,11 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
 
         _tempDS->singleManeuverList = detectSingleManeuver(&_tempDrivingStatusList, _tempDS->minDiffTime, _tempDS->minDuration, _tempDS->maxDuration);
         sort(_tempDS->singleManeuverList.begin(), _tempDS->singleManeuverList.end(), cmp_sort_first);
-        //std::cout << "Found " << _tempDS->singleManeuverList.size() << " " << _tempDS->name << std::endl;
-        //for(auto temp : _tempDS->singleManeuverList)
-        //  std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
+        if(VERBOSE) {
+          std::cout << "Found " << _tempDS->singleManeuverList.size() << " " << _tempDS->name << std::endl;
+          for(auto temp : _tempDS->singleManeuverList)
+            std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
+        }
         }
       }
     }
