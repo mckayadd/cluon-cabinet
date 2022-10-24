@@ -36,6 +36,8 @@ inline std::vector<std::pair<int64_t, int64_t>> getFalseNegatives(std::vector<st
         } else {
             /* not contained */
             false_negatives.push_back(temp);
+
+            std::cout << "False Negativ: " << temp.first << ", " << temp.second << std::endl;
         }
     }
     
@@ -55,6 +57,8 @@ inline std::vector<std::pair<int64_t, int64_t>> getFalsePositives(std::vector<st
         } else {
             /* not contained */
             false_positives.push_back(temp);
+
+            std::cout << "False Positive: " << temp.first << ", " << temp.second << std::endl;
         }
     }
     

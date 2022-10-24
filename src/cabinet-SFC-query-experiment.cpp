@@ -56,9 +56,100 @@ int32_t main(int32_t argc, char **argv) {
     std::pair<float,float> _fenceBL;
     std::pair<float,float> _fenceTR;
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Check Database consitencies
+/*
+  MDB_env *env{nullptr};
+  const int numberOfDatabases{100};
+  const int64_t SIZE_DB = MEM * 1024UL * 1024UL * 1024UL;
+
+  // lambda to check the interaction with the database.
+  auto checkErrorCode = [_argv=argv](int32_t rc, int32_t line, std::string caller) {
+    if (0 != rc) {
+      std::cerr << "[" << _argv[0] << "]: " << caller << ", line " << line << ": (" << rc << ") " << mdb_strerror(rc) << std::endl; 
+    }
+    return (0 == rc);
+  };
+
+  if (!checkErrorCode(mdb_env_create(&env), __LINE__, "mdb_env_create")) {
+    return retCode;
+  }
+  if (!checkErrorCode(mdb_env_set_maxdbs(env, numberOfDatabases), __LINE__, "mdb_env_set_maxdbs")) {
+    mdb_env_close(env);
+    return retCode;
+  }
+  if (!checkErrorCode(mdb_env_set_mapsize(env, SIZE_DB), __LINE__, "mdb_env_set_mapsize")) {
+    mdb_env_close(env);
+    return retCode;
+  }
+  // Database_BF
+  if (!checkErrorCode(mdb_env_open(env, CABINET.c_str(), MDB_NOSUBDIR|MDB_RDONLY, 0600), __LINE__, "mdb_env_open")) {
+    mdb_env_close(env);
+    return retCode;
+  }
+  
+  MDB_txn *txn{nullptr};
+  MDB_dbi dbi{0};
+  if (!checkErrorCode(mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn), __LINE__, "mdb_txn_begin")) {
+    mdb_env_close(env);
+    return retCode;
+  }
+  retCode = APLX ? mdb_dbi_open(txn, "533/0", 0 , &dbi) : mdb_dbi_open(txn, "1030/2", 0 , &dbi);
+  if (MDB_NOTFOUND  == retCode) {
+    if(APLX){std::clog << "[" << argv[0] << "]: No database '533/0' found in " << CABINET << "." << std::endl;}
+    else{std::clog << "[" << argv[0] << "]: No database '1030/2' found in " << CABINET << "." << std::endl;}
+
+    return retCode;
+  }
+
+  mdb_set_compare(txn, dbi, &compareMortonKeys);
+  // Multiple values are stored by existing timeStamp in nanoseconds.
+  mdb_set_dupsort(txn, dbi, &compareKeys);
+
+  uint64_t numberOfEntries_BF{0};
+  MDB_stat stat;
+  if (!mdb_stat(txn, dbi, &stat)) {
+    numberOfEntries_BF = stat.ms_entries;
+  }
+  if(APLX){std::clog << "[" << argv[0] << "]: Found " << numberOfEntries_BF << " entries in database '533/0' in " << CABINET << std::endl;}
+  else{std::clog << "[" << argv[0] << "]: Found " << numberOfEntries_BF << " entries in database '1030/2' in " << CABINET << std::endl;}
+
+
+ // Database_SFC
+  if (!checkErrorCode(mdb_env_open(env, CABINET_SFC.c_str(), MDB_NOSUBDIR|MDB_RDONLY, 0600), __LINE__, "mdb_env_open")) {
+    mdb_env_close(env);
+    return retCode;
+  }
+  
+  if (!checkErrorCode(mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn), __LINE__, "mdb_txn_begin")) {
+    mdb_env_close(env);
+    return retCode;
+  }
+  retCode = APLX ? mdb_dbi_open(txn, "533/0-morton", 0 , &dbi) : mdb_dbi_open(txn, "1030/2-morton", 0 , &dbi);
+  if (MDB_NOTFOUND  == retCode) {
+    if(APLX){std::clog << "[" << argv[0] << "]: No database '533/0-morton' found in " << CABINET_SFC << "." << std::endl;}
+    else{std::clog << "[" << argv[0] << "]: No database '1030/2-morton' found in " << CABINET_SFC << "." << std::endl;}
+
+    return retCode;
+  }
+
+  mdb_set_compare(txn, dbi, &compareMortonKeys);
+  // Multiple values are stored by existing timeStamp in nanoseconds.
+  mdb_set_dupsort(txn, dbi, &compareKeys);
+
+  uint64_t numberOfEntries_SFC{0};
+
+  if (!mdb_stat(txn, dbi, &stat)) {
+    numberOfEntries_SFC = stat.ms_entries;
+  }
+  if(APLX){std::clog << "[" << argv[0] << "]: Found " << numberOfEntries_SFC << " entries in database '533/0-morton' in " << CABINET_SFC << std::endl;}
+  else{std::clog << "[" << argv[0] << "]: Found " << numberOfEntries_SFC << " entries in database '1030/2-morton' in " << CABINET_SFC << std::endl;}
+*/
+
 ////////////////////////////////////////////////////////////////////////////////
 
-    _fenceBL.first = -1.5; _fenceBL.second = 0.75;
+    _fenceBL.first = -1.5; _fenceBL.second = 0.15;
     _fenceTR.first = 0.75; _fenceTR.second = 5;
     DrivingStatus *leftCurve  = new DrivingStatus( "leftCurve",
             _fenceBL,
@@ -70,7 +161,7 @@ int32_t main(int32_t argc, char **argv) {
             50000000);
 
     _fenceBL.first = -1.5; _fenceBL.second = -5;
-    _fenceTR.first = 0.75; _fenceTR.second = -0.75;
+    _fenceTR.first = 0.75; _fenceTR.second = -0.15;
     DrivingStatus *rightCurve = new DrivingStatus( "rightCurve",
             _fenceBL,
             _fenceTR,
@@ -131,8 +222,10 @@ int32_t main(int32_t argc, char **argv) {
 
     std::cout << "Effectivity" << std::endl;
 
-    if(detection_BF.size() != 0)
-      std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << (detection_BF.size()-false_negatives.size())/detection_BF.size() * 100 << "%)" <<" elements are detected by SFC-query" << std::endl;
+    if(detection_BF.size() != 0) {
+      float detShare = (static_cast<float>(detection_BF.size())-static_cast<float>(false_negatives.size()))/static_cast<float>(detection_BF.size()) * 100.0f;
+      std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << detShare << "%)" <<" elements are detected by SFC-query" << std::endl;
+    }
     else
       std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() << " elements are detected by SFC-query" << std::endl;
 

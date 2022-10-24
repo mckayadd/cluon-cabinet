@@ -126,13 +126,17 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
       continue;
     }
 
-    //if(((*_tempDrivingStatusList)[i] >= 1590992666780594000) && ((*_tempDrivingStatusList)[i] <= 1590992667650156000))
-    //std::cout << (*_tempDrivingStatusList)[i] << "; " << (*_tempDrivingStatusList)[i-1] << "; " << (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1] << std::endl;
+    //if(((*_tempDrivingStatusList)[i] >= 1645101199345690000) && ((*_tempDrivingStatusList)[i] <= 1645101199976113000))
+    //  std::cout << (*_tempDrivingStatusList)[i] << "; " << (*_tempDrivingStatusList)[i-1] << "; " << (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1] << std::endl;
 
     if((minDiffTime < (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1]) || (i == (_tempDrivingStatusList->size()-1))) {
       
-      if(i == (_tempDrivingStatusList->size()-1)) _tsEnd = (*_tempDrivingStatusList)[i];
-      else _tsEnd = (*_tempDrivingStatusList)[i-1];
+      _tsEnd = (*_tempDrivingStatusList)[i-1];
+
+      if(i == (_tempDrivingStatusList->size()-1) && (minDiffTime > (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1]))
+      {
+        _tsEnd = (*_tempDrivingStatusList)[i];
+      }
 
       
       int64_t duration = _tsEnd - _tsStart;
@@ -361,10 +365,10 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
                   timeStamp = be64toh(timeStamp);
                   //if (VERBOSE) {
                   //  std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
-                  //if((timeStamp >= 1590992666780594000) && (timeStamp <= 1590992667650156000))
+                  //if((timeStamp >= 1645101199345690000) && (timeStamp <= 1645101199976113000))
                   //  std::cout << timeStamp << "; " << morton << "; " << decodedAccel.first << "; " << decodedAccel.second << std::endl;
                   //}
-                  
+                                    
                   //store morton timeStamp combo
                   // std::pair<uint64_t,int64_t> _mortonTS;
                   // _mortonTS.first = morton;
