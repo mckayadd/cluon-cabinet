@@ -38,7 +38,7 @@
       return _ts;
     }
 
-    //if((_ts >=  1645101196015660000) && (_ts <=  1645101199996113000))
+    //if((_ts >=  1645099611806294000) && (_ts <=  1645099614135968000))
     //  std::cout << "start" << std::endl;
 
     int64_t _currTS = _ts + _maneuver[_dsID]->minGap;
@@ -82,7 +82,7 @@
     _key.reserve(MAXKEYSIZE);
 
     cabinet::Key query;
-    query.timeStamp(_currTS - _maneuver[_dsID]->minDiffTime); // um den außreiser bereich noch zurück gehen, um sicher zu stelle, dass manöver nicht schon vor gap min anfängt
+    query.timeStamp(_currTS - (_maneuver[_dsID]->minDiffTime * 2)); // um den außreiser bereich noch zurück gehen, um sicher zu stelle, dass manöver nicht schon vor gap min anfängt
     
     key.mv_size = setKey(query, _key.data(), _key.capacity());
     key.mv_data = _key.data();
@@ -157,7 +157,7 @@
         _currAccelLon = std::lroundf(_currAccelLon * 100.0f) / 100.0f;
         _currAccelTrans = std::lroundf(_currAccelTrans * 100.0f) / 100.0f;
 
-        //if((storedKey.timeStamp() >=  1645101196015660000) && (storedKey.timeStamp() <=  1645101199996113000))
+        //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
         //  std::cout << storedKey.timeStamp() << "; " << _currAccelLon << "; " << _currAccelTrans << std::endl;
 
         
@@ -166,7 +166,7 @@
         if((diffToPrev > _maneuver[_dsID]->minDiffTime) && (lastInFence_TS != 0)) { // to make sure, that maneuver is over
           if(flag == true){
               flag = false;
-              //if((storedKey.timeStamp() >=  1645101196015660000) && (storedKey.timeStamp() <=  1645101199996113000))
+              //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
               //  std::cout << "Maneuverdetection end_TS: " << lastInFence_TS << std::endl;
             //if(_maneuver[_dsID]->minDiffTime <= diffToPrev) {
               int64_t duration = lastInFence_TS - start_TS;
@@ -176,6 +176,37 @@
 
               if((duration > _maneuver[_dsID]->minDuration) && (duration < _maneuver[_dsID]->maxDuration)) {
                 if (VERBOSE) std::cerr << "Maneuver Stage " << _dsID << " " << start_TS << "  : " << lastInFence_TS << std::endl;
+                
+
+                if(start_TS < _currTS) // check, whether maneuver starts during maneuver gap min
+                {
+                        
+                  //_key.reserve(MAXKEYSIZE);
+
+                  //cabinet::Key query;
+                  query.timeStamp(lastInFence_TS); // um den außreiser bereich noch zurück gehen, um sicher zu stelle, dass manöver nicht schon vor gap min anfängt
+                  
+                  key.mv_size = setKey(query, _key.data(), _key.capacity());
+                  key.mv_data = _key.data();
+
+                  // lambda to check the interaction with the database.
+                
+                  mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE);
+
+                  //return recursiveManeuverDetector(lastInFence_TS, _dsID, _maneuver, env, rotxn, APLX, VERBOSE);
+                  // maneuver starts too early; break
+                  flag = false;
+                  start_TS = 0;
+                  prev_TS = 0;
+
+                  //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
+                  //  std::cout << "maneuver starts to early; reset detector to " << lastInFence_TS << std::endl;
+
+                  continue;
+                  
+                  //break;
+                }
+
                 cursor.close();
                 return recursiveManeuverDetector(lastInFence_TS, _dsID+1, _maneuver, env, rotxn, APLX, VERBOSE);
               }
@@ -192,28 +223,34 @@
           // if(storedKey.timeStamp() == 1645099057959768000) std::cout << "1645099057959768000 in fence; flag = " << flag << " ds: " << _dsID << std::endl;
           // if(storedKey.timeStamp() == 1645099057970052000) std::cout << "1645099057970052000 in fence; flag = " << flag << " ds: " << _dsID << std::endl;
 
-          if(storedKey.timeStamp() < _currTS) { // Maneuver beginnt schon vor Gap min
-            //std::cout << "outof range < " << _currTS << std::endl;
-            break;
-          }
+          //if(storedKey.timeStamp() < _currTS) { // Maneuver beginnt schon vor Gap min
+          //  //std::cout << "outof range < " << _currTS << std::endl;
+          //  if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
+          //      std::cout << "break hard" << std::endl;
+          //  break;
+          //}
 
           lastInFence_TS = storedKey.timeStamp();
           lastInFence_accelLon = _currAccelLon;
           lastInFence_accelLat = _currAccelTrans;
 
           if(flag == false) {
-            if(storedKey.timeStamp() > _maxGapTS)
+            if(storedKey.timeStamp() > _maxGapTS) {
+              //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
+              //  std::cout << "break gap max" << std::endl;
               break;
-            else{
+            } else {
               start_TS = storedKey.timeStamp();
               flag = true;
-              //if((storedKey.timeStamp() >=  1645101196015660000) && (storedKey.timeStamp() <=  1645101199996113000))
+              //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
               //  std::cout << "Maneuverdetection start_TS: " << start_TS << std::endl;
             }
           }
         }
         else {
           if((flag == false) && storedKey.timeStamp() > _maxGapTS) {
+            //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
+            //  std::cout << "break gap max; false" << std::endl;
             break;
           }
         }
@@ -358,7 +395,7 @@
           _currAccelLon = std::lroundf(_currAccelLon * 100.0f) / 100.0f;
           _currAccelTrans = std::lroundf(_currAccelTrans * 100.0f) / 100.0f;
 
-          //if((storedKey.timeStamp() >=  1645101196015660000) && (storedKey.timeStamp() <=  1645101199976113000))
+          //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
           //  std::cout << storedKey.timeStamp() << "; " << _currAccelLon << "; " << _currAccelTrans << std::endl;
 
           int64_t diffToPrev = storedKey.timeStamp() - lastInFence_TS;
@@ -374,12 +411,12 @@
                   // hier den nächsten Detektor
                   int64_t end_TS = 0; // detector aufruf
                   
-                  //if((storedKey.timeStamp() >=  1645101196015660000) && (storedKey.timeStamp() <=  1645101199976113000))
+                  //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
                   //  std::cout << "call recursive " << lastInFence_TS << std::endl;
 
                   end_TS = recursiveManeuverDetector(lastInFence_TS, 1, maneuver, env, rotxn, APLX, VERBOSE);
 
-                  //if((storedKey.timeStamp() >=  1645101196015660000) && (storedKey.timeStamp() <=  1645101199976113000))
+                  //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
                   //  std::cout << "end recursive " << lastInFence_TS << std::endl;
 
                   if(end_TS != 0){
@@ -408,7 +445,7 @@
               start_TS = storedKey.timeStamp();
               flag = true;
 
-              //if((storedKey.timeStamp() >=  1645101196015660000) && (storedKey.timeStamp() <=  1645101199976113000))
+              //if((storedKey.timeStamp() >=  1645099611806294000) && (storedKey.timeStamp() <=  1645099614135968000))
               //  std::cout << "start man " << start_TS << std::endl;
             }
           }

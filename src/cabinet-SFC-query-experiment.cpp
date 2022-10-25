@@ -147,9 +147,14 @@ int32_t main(int32_t argc, char **argv) {
   else{std::clog << "[" << argv[0] << "]: Found " << numberOfEntries_SFC << " entries in database '1030/2-morton' in " << CABINET_SFC << std::endl;}
 */
 
+float min_x = -10.0f;
+float max_x = 10.0f;
+float min_y = -6.0f;
+float max_y = 6.0f;
+
 ////////////////////////////////////////////////////////////////////////////////
 
-    _fenceBL.first = -1.5; _fenceBL.second = 0.15;
+    _fenceBL.first = -1.5; _fenceBL.second = 0.0;
     _fenceTR.first = 0.75; _fenceTR.second = 5;
     DrivingStatus *leftCurve  = new DrivingStatus( "leftCurve",
             _fenceBL,
@@ -161,7 +166,7 @@ int32_t main(int32_t argc, char **argv) {
             50000000);
 
     _fenceBL.first = -1.5; _fenceBL.second = -5;
-    _fenceTR.first = 0.75; _fenceTR.second = -0.15;
+    _fenceTR.first = 0.75; _fenceTR.second = -0.0;
     DrivingStatus *rightCurve = new DrivingStatus( "rightCurve",
             _fenceBL,
             _fenceTR,

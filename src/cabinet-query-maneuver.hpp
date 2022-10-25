@@ -126,7 +126,7 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver(std::vector<
       continue;
     }
 
-    //if(((*_tempDrivingStatusList)[i] >= 1645101199345690000) && ((*_tempDrivingStatusList)[i] <= 1645101199976113000))
+    //if(((*_tempDrivingStatusList)[i] >= 1645098108930034000) && ((*_tempDrivingStatusList)[i] <= 1645098112159906000))
     //  std::cout << (*_tempDrivingStatusList)[i] << "; " << (*_tempDrivingStatusList)[i-1] << "; " << (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1] << std::endl;
 
     if((minDiffTime < (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1]) || (i == (_tempDrivingStatusList->size()-1))) {
@@ -365,7 +365,7 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
                   timeStamp = be64toh(timeStamp);
                   //if (VERBOSE) {
                   //  std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
-                  //if((timeStamp >= 1645101199345690000) && (timeStamp <= 1645101199976113000))
+                  //if((timeStamp >= 1645098108930034000) && (timeStamp <= 1645098112159906000))
                   //  std::cout << timeStamp << "; " << morton << "; " << decodedAccel.first << "; " << decodedAccel.second << std::endl;
                   //}
                                     
