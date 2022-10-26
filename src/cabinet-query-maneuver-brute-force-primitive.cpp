@@ -7,7 +7,7 @@
  */
 
 #include "cluon-complete.hpp"
-#include "cabinet-query-maneuver-brute-force.hpp"
+#include "cabinet-query-maneuver-brute-force-primitive.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -85,7 +85,7 @@ int32_t main(int32_t argc, char **argv) {
 
     ////////////////////////////////////////////////////////////////////////////////
 
-    std::vector<std::pair<int64_t, int64_t>> detectionBF = cabinet_queryManeuverBruteForce(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
+    std::vector<std::pair<int64_t, int64_t>> detectionBF = cabinet_queryManeuverBruteForcePrimitive(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
   
     if(VERBOSE) {
       for(auto _temp : detectionBF) {
@@ -93,7 +93,7 @@ int32_t main(int32_t argc, char **argv) {
       }
       std::cout << "BF: We detected " << detectionBF.size() << " Maneuvers" << std::endl;
     }
-
+    
   }
   return retCode;
 }

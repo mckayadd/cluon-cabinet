@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-#ifndef CABINETACCELTOMORTON_HPP
-#define CABINETACCELTOMORTON_HPP
+#ifndef CABINETQUERYMANEUVERBRUTEFORCE_HPP
+#define CABINETQUERYMANEUVERBRUTEFORCE_HPP
 
 #include "cluon-complete.hpp"
 #include "opendlv-standard-message-set.hpp"
@@ -292,14 +292,14 @@
       auto rotxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
       auto dbiAll = lmdb::dbi::open(rotxn, "all");
       dbiAll.set_compare(rotxn, &compareKeys);
-      std::clog << "Found " << dbiAll.size(rotxn) << " entries in database 'all'." << std::endl;
+      if(VERBOSE) std::clog << "Found " << dbiAll.size(rotxn) << " entries in database 'all'." << std::endl;
 
 
       std::string DB = APLX ? "533/0" : "1030/2";
       auto dbi = lmdb::dbi::open(rotxn, DB.c_str());
       dbi.set_compare(rotxn, &compareKeys);
       const uint64_t totalEntries = dbi.size(rotxn);
-      std::clog << "Found " << totalEntries << " entries in database '" << DB << "'." << std::endl;
+      if(VERBOSE) std::clog << "Found " << totalEntries << " entries in database '" << DB << "'." << std::endl;
 
       //MDB_cursor *cursor;
       //mdb_cursor_open(rotxn, dbi, &cursor);

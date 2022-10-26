@@ -16,12 +16,35 @@
 #include "morton.hpp"
 #include "opendlv-standard-message-set.hpp"
 #include "cabinet-query-maneuver-brute-force.hpp"
+#include "cabinet-query-maneuver-brute-force-primitive.hpp"
 #include "cabinet-query-maneuver.hpp"
 
 #include <iostream>
 #include <sstream>
 #include <string>
 
+// Robert Jenkins' 96 bit Mix Function
+inline unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
+{
+    a=a-b;  a=a-c;  a=a^(c >> 13);
+    b=b-c;  b=b-a;  b=b^(a << 8);
+    c=c-a;  c=c-b;  c=c^(b >> 13);
+    a=a-b;  a=a-c;  a=a^(c >> 12);
+    b=b-c;  b=b-a;  b=b^(a << 16);
+    c=c-a;  c=c-b;  c=c^(b >> 5);
+    a=a-b;  a=a-c;  a=a^(c >> 3);
+    b=b-c;  b=b-a;  b=b^(a << 10);
+    c=c-a;  c=c-b;  c=c^(b >> 15);
+    return c;
+}
+
+inline float float_rand( float min, float max )
+{
+    unsigned long seed = mix(clock(), time(NULL), getpid());
+    srand(seed);
+    float scale = rand() / (float) RAND_MAX; /* [0, 1.0] */
+    return round((min + scale * ( max - min )) * 100) / 100;      /* [min, max] */
+}
 
 inline std::vector<std::pair<int64_t, int64_t>> getFalseNegatives(std::vector<std::pair<int64_t, int64_t>> detection_BF, std::vector<std::pair<int64_t, int64_t>> detection_SFC) {
 
@@ -37,7 +60,7 @@ inline std::vector<std::pair<int64_t, int64_t>> getFalseNegatives(std::vector<st
             /* not contained */
             false_negatives.push_back(temp);
 
-            std::cout << "False Negativ: " << temp.first << ", " << temp.second << std::endl;
+            //std::cout << "False Negativ: " << temp.first << ", " << temp.second << std::endl;
         }
     }
     
@@ -58,7 +81,7 @@ inline std::vector<std::pair<int64_t, int64_t>> getFalsePositives(std::vector<st
             /* not contained */
             false_positives.push_back(temp);
 
-            std::cout << "False Positive: " << temp.first << ", " << temp.second << std::endl;
+            //std::cout << "False Positive: " << temp.first << ", " << temp.second << std::endl;
         }
     }
     

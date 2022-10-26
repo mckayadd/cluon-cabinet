@@ -257,8 +257,11 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
     //retCode = mdb_dbi_open(txn, "533/0-morton", 0 , &dbi);
     //retCode = mdb_dbi_open(txn, "1030/2-morton", 0 , &dbi);
     if (MDB_NOTFOUND  == retCode) {
-      if(APLX){std::clog << "[" << argv[0] << "]: No database '533/0-morton' found in " << CABINET << "." << std::endl;}
-      else{std::clog << "[" << argv[0] << "]: No database '1030/2-morton' found in " << CABINET << "." << std::endl;}
+      if(VERBOSE)
+      {
+        if(APLX){std::clog << "[" << argv[0] << "]: No database '533/0-morton' found in " << CABINET << "." << std::endl;}
+        else{std::clog << "[" << argv[0] << "]: No database '1030/2-morton' found in " << CABINET << "." << std::endl;}
+      }
     }
     else {
       mdb_set_compare(txn, dbi, &compareMortonKeys);
@@ -270,8 +273,11 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
       if (!mdb_stat(txn, dbi, &stat)) {
         numberOfEntries = stat.ms_entries;
       }
-      if(APLX){std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '533/0-morton' in " << CABINET << std::endl;}
-      else{std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '1030/2-morton' in " << CABINET << std::endl;}
+      if(VERBOSE)
+      {
+        if(APLX){std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '533/0-morton' in " << CABINET << std::endl;}
+        else{std::clog << "[" << argv[0] << "]: Found " << numberOfEntries << " entries in database '1030/2-morton' in " << CABINET << std::endl;}
+      }
 
       uint64_t bl_morton = 0;
       uint64_t tr_morton = 0;
@@ -382,13 +388,13 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
             }
           }
 
-        _tempDS->singleManeuverList = detectSingleManeuver(&_tempDrivingStatusList, _tempDS->minDiffTime, _tempDS->minDuration, _tempDS->maxDuration);
-        sort(_tempDS->singleManeuverList.begin(), _tempDS->singleManeuverList.end(), cmp_sort_first);
-        if(VERBOSE) {
-          std::cout << "Found " << _tempDS->singleManeuverList.size() << " " << _tempDS->name << std::endl;
-          for(auto temp : _tempDS->singleManeuverList)
-            std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
-        }
+          _tempDS->singleManeuverList = detectSingleManeuver(&_tempDrivingStatusList, _tempDS->minDiffTime, _tempDS->minDuration, _tempDS->maxDuration);
+          sort(_tempDS->singleManeuverList.begin(), _tempDS->singleManeuverList.end(), cmp_sort_first);
+          if(VERBOSE) {
+            std::cout << "Found " << _tempDS->singleManeuverList.size() << " " << _tempDS->name << std::endl;
+            for(auto temp : _tempDS->singleManeuverList)
+              std::cout << "Start " << temp.first << "; End " << temp.second << std::endl;
+          }
         }
       }
     }
