@@ -267,7 +267,7 @@
   }
 
 
-  inline std::vector<std::pair<int64_t, int64_t>> cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::string &CABINET, const bool &APLX, const bool &VERBOSE, const std::pair<float,float> _fenceBL, const std::pair<float,float> _fenceTR, std::vector<DrivingStatus*> maneuver) {
+  inline std::vector<std::pair<int64_t, int64_t>> cabinet_queryManeuverBruteForce(const uint64_t &MEM, const std::string &CABINET, const bool &APLX, const bool &VERBOSE, const std::pair<float,float> _fenceBL, const std::pair<float,float> _fenceTR, std::vector<DrivingStatus*> maneuver, uint64_t db_start, uint64_t db_end) {
     bool failed{false};
     std::vector<std::pair<int64_t, int64_t>> maneuverDetectedList;
 
@@ -313,7 +313,8 @@
 
       int32_t oldPercentage{-1};
       uint64_t entries{0};
-      int loadAnimation = 0;
+      db_start = db_start == 0 ? 0 : db_start;
+      db_end = db_end == 0 ? 1646827840115619000 : db_end;
 
       MDB_val key;
       MDB_val value;
@@ -322,12 +323,14 @@
 
       while (cursor.get(&key, &value, MDB_NEXT)) {
 
+        
         const int32_t percentage = static_cast<int32_t>((static_cast<float>(entries) * 100.0f) / static_cast<float>(totalEntries));
         if ((percentage % 5 == 0) && (percentage != oldPercentage)) {
           std::clog <<"Processed " << percentage << "% (" << entries << " entries) from " << CABINET << std::endl;
           oldPercentage = percentage;
         }
         entries++;
+
         // if((entries % 20) == 0) {
         //   // loading animation
         //   if (loadAnimation == 0)
@@ -378,6 +381,12 @@
         if (e.first && e.second.dataType() == _ID) {
           // const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
           //const auto tmp = cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second));
+
+          if(storedKey.timeStamp() < db_start)
+            continue;
+          if(storedKey.timeStamp() > db_end) {
+            break;
+          }
 
           float _currAccelLon = 0;
           float _currAccelTrans = 0;

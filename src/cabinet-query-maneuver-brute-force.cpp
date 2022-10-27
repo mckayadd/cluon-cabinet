@@ -85,7 +85,7 @@ int32_t main(int32_t argc, char **argv) {
 
     ////////////////////////////////////////////////////////////////////////////////
 
-    std::vector<std::pair<int64_t, int64_t>> detectionBF = cabinet_queryManeuverBruteForce(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
+    std::vector<std::pair<int64_t, int64_t>> detectionBF = cabinet_queryManeuverBruteForce(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver, 0, 0);
   
     if(VERBOSE) {
       for(auto _temp : detectionBF) {

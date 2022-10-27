@@ -193,7 +193,7 @@ int32_t main(int32_t argc, char **argv) {
 
   std::fstream resultDatei("results.txt", std::ios::out); //out: zum schreiben oeffnen
 
-  resultDatei << "ID" << ", " << "duration_BF_primitive" << ", " << "duration_BF" << ", " <<  "duration_SFC" << ", "
+  resultDatei << "ID" << ", " << "db_start" << ", " << "db_end" << ", " << "entryCNT" << ", " << "duration_BF_primitive" << ", " << "duration_BF" << ", " <<  "duration_SFC" << ", "
          << "detection_BF_primitive.size()" << ", " << "detection_BF.size()" << ", " << "detection_SFC.size()" << ", "
          <<  "false_negatives_BF.size()" << ", " <<  "false_positives_BF.size()" << ", "
          << "false_negatives_SFC.size()" << ", " << "false_positives_SFC.size()" << ", "
@@ -203,146 +203,179 @@ int32_t main(int32_t argc, char **argv) {
 
   int noRand = 2;
   int noStages = 2;
+  int noDbSize = 3;
   int testCnt = 1;
 
-  int maxTest = noRand*noStages;
+  float min_x = -8.0f;
+  float max_x = 8.0f;
+  float min_y = -6.0f;
+  float max_y = 6.0f;
 
-  for(int cur_stage = 1; cur_stage <= noStages; cur_stage++) {
+  uint64_t db_min =  1645098077131594000;
+  uint64_t db_max = 1645101199045973000;
 
-    for(int i = 1; i <= noRand; i++) {
-    ////////////////////////////////////////////////////////////////////////////////
+  int maxTest = noRand*noStages*noDbSize;
 
-        std::cout << std::endl << "------------------------------------ Test " << testCnt << "/" << maxTest << " -----------------------------"  << std::endl;
+  uint64_t db_start;
+  uint64_t db_end;
 
-        float min_x = -2.0f;
-        float max_x = 2.0f;
-        float min_y = -1.0f;
-        float max_y = 1.0f;
-        
-        std::vector<DrivingStatus*> maneuver;
+  int i = 1;
 
-        std::cout << "Fuzz relevant SearchMask" << std::endl;
+  for(int db_sizeCNT = 0; db_sizeCNT < noDbSize; db_sizeCNT++) {
 
-        int fenceTry = 0;
-        do {
-          maneuver.clear();
-          for(int _stages=0; _stages < cur_stage; _stages++) {
+    //resetDatabase:
 
-            _fenceBL.first = float_rand( min_x,  max_x-0.1 );
-            _fenceBL.second = float_rand( min_y,  max_y-0.1 );
-            _fenceTR.first = float_rand( _fenceBL.first,  max_x );
-            _fenceTR.second = float_rand( _fenceBL.second,  max_y );
+    if(i == 1) {
+      db_start = db_min;
+      db_end = db_max;
+    } else {
+      db_start = ts_rand(db_min, db_max-1);
+      db_end = ts_rand(db_start, db_max);
+    }
+    
+    for(int cur_stage = 1; cur_stage <= noStages; cur_stage++) {
 
-            DrivingStatus *manStage  = new DrivingStatus( "Maneuver stage",
-                    _fenceBL,
-                    _fenceTR,
-                    200000000, // 500000000
-                    3000000000,
-                    -200000000,
-                    2000000000,
-                    50000000);
+      for(i = 1; i <= noRand; i++) {
+      ////////////////////////////////////////////////////////////////////////////////
 
-            maneuver.push_back (manStage);
+          
+          std::cout << std::endl << "------------------------------------ Test " << testCnt << "/" << maxTest << " -----------------------------"  << std::endl;
+          
+          std::vector<DrivingStatus*> maneuver;
+
+          std::cout << "Fuzz relevant SearchMask" << std::endl;
+
+          int fenceTry = 0;
+          do {
+            maneuver.clear();
+            for(int _stages=0; _stages < cur_stage; _stages++) {
+
+              _fenceBL.first = float_rand( min_x,  max_x-0.1 );
+              _fenceBL.second = float_rand( min_y,  max_y-0.1 );
+              _fenceTR.first = float_rand( _fenceBL.first,  max_x );
+              _fenceTR.second = float_rand( _fenceBL.second,  max_y );
+
+              DrivingStatus *manStage  = new DrivingStatus( "Maneuver stage",
+                      _fenceBL,
+                      _fenceTR,
+                      200000000, // 500000000
+                      3000000000,
+                      -200000000,
+                      2000000000,
+                      50000000);
+
+              maneuver.push_back (manStage);
+            }
+            fenceTry++;
+            if(fenceTry > 200) {
+              std::cout << "abbort criteria: more than 200 trys... proceed with bad search mask seed" << std::endl;
+              //goto resetDatabase;
+              break;
+            }
+          } while((identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver, db_start, db_end).size() == 0));
+
+
+          for(auto tempMan : maneuver) {
+            std::cout << "BL: (" << tempMan->fenceBL.first << "," << tempMan->fenceBL.second << ") TR: (" << tempMan->fenceTR.first << "," << tempMan->fenceTR.second  << ")" << std::endl;
           }
-          fenceTry++;
-          if(fenceTry > 50) {
-            std::cout << "abbort criteria: more than 50 trys... Proceed test with non relevant mask" << std::endl;
-            break;
+
+          
+      ////////////////////////////////////////////////////////////////////////////////
+
+          uint64_t entryCNT = 0;
+
+          std::cout << std::endl << "Brute Force Primitive" << std::endl;
+
+          auto start = std::chrono::high_resolution_clock::now();
+          std::vector<std::pair<int64_t, int64_t>> detection_BF_primitive = cabinet_queryManeuverBruteForcePrimitive(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver, db_start, db_end, entryCNT);
+          auto end = std::chrono::high_resolution_clock::now();
+          int64_t duration_BF_primitive = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+          std::cout << "Done!" << std::endl;
+
+          std::cout << std::endl << "Brute Force" << std::endl;
+
+          start = std::chrono::high_resolution_clock::now();
+          std::vector<std::pair<int64_t, int64_t>> detection_BF = cabinet_queryManeuverBruteForce(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver, db_start, db_end);
+          end = std::chrono::high_resolution_clock::now();
+          int64_t duration_BF = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+          std::cout << "Done!" << std::endl;
+
+          std::cout << std::endl << "Space Filling Curve" << std::endl;
+
+          start = std::chrono::high_resolution_clock::now();
+          std::vector<std::pair<int64_t, int64_t>> detection_SFC = identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver, db_start, db_end);
+          end = std::chrono::high_resolution_clock::now();
+          int64_t duration_SFC = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+
+          std::cout << "Done!" << std::endl << std::endl;
+
+          std::vector<std::pair<int64_t, int64_t>>false_negatives_BF = getFalseNegatives(detection_BF_primitive, detection_BF);
+          std::vector<std::pair<int64_t, int64_t>>false_positives_BF = getFalsePositives(detection_BF_primitive, detection_BF);
+
+          std::vector<std::pair<int64_t, int64_t>>false_negatives_SFC = getFalseNegatives(detection_BF_primitive, detection_SFC);
+          std::vector<std::pair<int64_t, int64_t>>false_positives_SFC = getFalsePositives(detection_BF_primitive, detection_SFC);
+
+      ////////////////////////////////////////////////////////////////////////////////
+      // Output all
+          /*if(!detection_BF.empty()) {
+            for(auto _temp : detection_BF) {
+              std::cout << "BF:  Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
+            }
           }
-        } while((identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver).size() == 0));
+          if(!detection_SFC.empty()) {
+            for(auto _temp : detection_SFC) {
+              std::cout << "SFC: Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
+            }
+          }*/
 
+      ////////////////////////////////////////////////////////////////////////////////
+          std::cout << "Database" << std::endl;
+          std::cout << "Start TS: " << db_start << " End TS: " << db_end << std::endl;
+          std::cout << "No. of entries in database: " << entryCNT << std::endl;
 
-        for(auto tempMan : maneuver) {
-          std::cout << "BL: (" << tempMan->fenceBL.first << "," << tempMan->fenceBL.second << ") TR: (" << tempMan->fenceTR.first << "," << tempMan->fenceTR.second  << ")" << std::endl;
+          // ausgabe für HMI
+          std::cout << std::endl << "Effectivity" << std::endl;
+          std::cout << "BF-Primitiv: We detected " << detection_BF_primitive.size() << " Maneuvers" << std::endl;
+          std::cout << "BF:          We detected " << detection_BF.size() << " Maneuvers" << std::endl;
+          std::cout << "SFC:         We detected " << detection_SFC.size() << " Maneuvers" << std::endl;
+
+          // std::cout << "Effectivity" << std::endl;
+
+          // if(detection_BF.size() != 0) {
+          //   float detShare = (static_cast<float>(detection_BF.size())-static_cast<float>(false_negatives.size()))/static_cast<float>(detection_BF.size()) * 100.0f;
+          //   std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << detShare << "%)" <<" elements are detected by SFC-query" << std::endl;
+          // }
+          // else
+          //   std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() << " elements are detected by SFC-query" << std::endl;
+
+          // std::cout << "(" << false_positives.size() << " false positives) : " << false_positives.size() << " elements are additionally detected by SFC-query." << std::endl;
+
+          std::cout << std::endl << "Efficiency" << std::endl;
+
+          std::cout << "BF-Primitiv: " << duration_BF_primitive << " ms" << std::endl;
+          std::cout << "BF         : " << duration_BF << " ms" << std::endl;
+          std::cout << "SFC        : " << duration_SFC << " ms" << std::endl;
+      ////////////////////////////////////////////////////////////////////////////////
+          //resultDatei
+          resultDatei << testCnt << ", " << db_start << ", " << db_end << ", " << entryCNT << ", " << duration_BF_primitive << ", " << duration_BF << ", " <<  duration_SFC << ", "
+            << detection_BF_primitive.size() << ", " << detection_BF.size() << ", " << detection_SFC.size() << ", "
+            <<  false_negatives_BF.size() << ", " <<  false_positives_BF.size() << ", "
+            << false_negatives_SFC.size() << ", " << false_positives_SFC.size();
+
+          //std::string temp;
+          //temp = i;
+          // + ", " + duration_BF_primitive + ", " + duration_BF + ", " +  duration_SFC + ", "
+          //  + detection_BF_primitive.size() + ", " + detection_BF.size() + ", " + detection_SFC.size() + ", "
+          //  +  false_negatives_BF.size() + ", " +  false_positives_BF.size() + ", " + false_negatives_SFC.size() + ", " + false_positives_SFC.size()+<< ", ";      
+          
+          for(auto tempMan : maneuver) {
+            resultDatei << ", " << tempMan->fenceBL.first << ", " << tempMan->fenceBL.second << ", "
+              << tempMan->fenceTR.first << ", " << tempMan->fenceTR.second;
+          }
+          resultDatei << std::endl;
+
+          testCnt++;
         }
-
-        
-    ////////////////////////////////////////////////////////////////////////////////
-
-        std::cout << std::endl << "Brute Force Primitive" << std::endl;
-
-        auto start = std::chrono::high_resolution_clock::now();
-        std::vector<std::pair<int64_t, int64_t>> detection_BF_primitive = cabinet_queryManeuverBruteForcePrimitive(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
-        auto end = std::chrono::high_resolution_clock::now();
-        int64_t duration_BF_primitive = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
-
-        std::cout << std::endl << "Brute Force" << std::endl;
-
-        start = std::chrono::high_resolution_clock::now();
-        std::vector<std::pair<int64_t, int64_t>> detection_BF = cabinet_queryManeuverBruteForce(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver);
-        end = std::chrono::high_resolution_clock::now();
-        int64_t duration_BF = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
-
-        std::cout << std::endl << "Space Filling Curve" << std::endl;
-
-        start = std::chrono::high_resolution_clock::now();
-        std::vector<std::pair<int64_t, int64_t>> detection_SFC = identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver);
-        end = std::chrono::high_resolution_clock::now();
-        int64_t duration_SFC = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
-
-        std::cout << "Done!" << std::endl << std::endl;
-
-        std::vector<std::pair<int64_t, int64_t>>false_negatives_BF = getFalseNegatives(detection_BF_primitive, detection_BF);
-        std::vector<std::pair<int64_t, int64_t>>false_positives_BF = getFalsePositives(detection_BF_primitive, detection_BF);
-
-        std::vector<std::pair<int64_t, int64_t>>false_negatives_SFC = getFalseNegatives(detection_BF_primitive, detection_SFC);
-        std::vector<std::pair<int64_t, int64_t>>false_positives_SFC = getFalsePositives(detection_BF_primitive, detection_SFC);
-
-    ////////////////////////////////////////////////////////////////////////////////
-    // Output all
-        /*if(!detection_BF.empty()) {
-          for(auto _temp : detection_BF) {
-            std::cout << "BF:  Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
-          }
-        }
-        if(!detection_SFC.empty()) {
-          for(auto _temp : detection_SFC) {
-            std::cout << "SFC: Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;
-          }
-        }*/
-
-    ////////////////////////////////////////////////////////////////////////////////
-        // ausgabe für HMI
-        std::cout << "BF-Primitiv: We detected " << detection_BF_primitive.size() << " Maneuvers" << std::endl;
-        std::cout << "BF:          We detected " << detection_BF.size() << " Maneuvers" << std::endl;
-        std::cout << "SFC:         We detected " << detection_SFC.size() << " Maneuvers" << std::endl;
-
-        // std::cout << "Effectivity" << std::endl;
-
-        // if(detection_BF.size() != 0) {
-        //   float detShare = (static_cast<float>(detection_BF.size())-static_cast<float>(false_negatives.size()))/static_cast<float>(detection_BF.size()) * 100.0f;
-        //   std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << detShare << "%)" <<" elements are detected by SFC-query" << std::endl;
-        // }
-        // else
-        //   std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() << " elements are detected by SFC-query" << std::endl;
-
-        // std::cout << "(" << false_positives.size() << " false positives) : " << false_positives.size() << " elements are additionally detected by SFC-query." << std::endl;
-
-        std::cout << "Efficiency" << std::endl;
-
-        std::cout << "BF-Primitiv: " << duration_BF_primitive << " ms" << std::endl;
-        std::cout << "BF         : " << duration_BF << " ms" << std::endl;
-        std::cout << "SFC        : " << duration_SFC << " ms" << std::endl;
-    ////////////////////////////////////////////////////////////////////////////////
-        //resultDatei
-        resultDatei << testCnt << ", " << duration_BF_primitive << ", " << duration_BF << ", " <<  duration_SFC << ", "
-          << detection_BF_primitive.size() << ", " << detection_BF.size() << ", " << detection_SFC.size() << ", "
-          <<  false_negatives_BF.size() << ", " <<  false_positives_BF.size() << ", "
-          << false_negatives_SFC.size() << ", " << false_positives_SFC.size();
-
-        //std::string temp;
-        //temp = i;
-        // + ", " + duration_BF_primitive + ", " + duration_BF + ", " +  duration_SFC + ", "
-        //  + detection_BF_primitive.size() + ", " + detection_BF.size() + ", " + detection_SFC.size() + ", "
-        //  +  false_negatives_BF.size() + ", " +  false_positives_BF.size() + ", " + false_negatives_SFC.size() + ", " + false_positives_SFC.size()+<< ", ";      
-        
-        for(auto tempMan : maneuver) {
-          resultDatei << ", " << tempMan->fenceBL.first << ", " << tempMan->fenceBL.second << ", "
-            << tempMan->fenceTR.first << ", " << tempMan->fenceTR.second;
-        }
-        resultDatei << std::endl;
-
-        testCnt++;
       }
     }
   }

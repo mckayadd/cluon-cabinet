@@ -211,7 +211,7 @@ inline int64_t maneuverDetectorRecursiv(std::vector<DrivingStatus*> maneuver, in
   return -1;
 }
 
-inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv, const std::string CABINET, const uint64_t MEM, const bool VERBOSE, const uint64_t THR, const bool APLX, std::vector<std::string> geoboxStrings, std::pair<float,float> geoboxBL, std::pair<float,float> geoboxTR, std::vector<DrivingStatus*> maneuver) {
+inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv, const std::string CABINET, const uint64_t MEM, const bool VERBOSE, const uint64_t THR, const bool APLX, std::vector<std::string> geoboxStrings, std::pair<float,float> geoboxBL, std::pair<float,float> geoboxTR, std::vector<DrivingStatus*> maneuver, uint64_t db_start, uint64_t db_end) {
   int32_t retCode{0};
 
   // Maneuver Detection
@@ -246,6 +246,9 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
     return fullManeuverList;
   }
   
+  db_start = db_start == 0 ? 0 : db_start;
+  db_end = db_end == 0 ? 1646827840115619000 : db_end;
+
   {
     MDB_txn *txn{nullptr};
     MDB_dbi dbi{0};
@@ -315,11 +318,21 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
 
       }
 
-      
+      uint64_t entries{0};
+      db_start = db_start == 0 ? 0 : db_start;
+      db_end = db_end == 0 ? numberOfEntries : db_end;
+
       MDB_cursor *cursor;
       if (!(retCode = mdb_cursor_open(txn, dbi, &cursor))) {
         MDB_val key;
         MDB_val value;
+
+        //if(entries < db_start)
+        //  continue;
+        //if(entries > db_end)
+        //  break;
+
+        entries++;
 
         for(DrivingStatus* _tempDS : maneuver) {
           std::vector<int64_t> _tempDrivingStatusList;
@@ -369,6 +382,7 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
                   const char *ptr = static_cast<char*>(value.mv_data);
                   std::memcpy(&timeStamp, ptr, value.mv_size);
                   timeStamp = be64toh(timeStamp);
+
                   //if (VERBOSE) {
                   //  std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
                   //if((timeStamp >= 1645098108930034000) && (timeStamp <= 1645098112159906000))
@@ -380,7 +394,8 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
                   // _mortonTS.first = morton;
                   // _mortonTS.second = timeStamp;
                   // DrivingStatusList.push_back(_mortonTS);
-                  _tempDrivingStatusList.push_back(timeStamp);
+                  if((timeStamp >= db_start) && timeStamp <= db_end)
+                    _tempDrivingStatusList.push_back(timeStamp);
                 }
                 // cursor weitersetzen
                 _rc = mdb_cursor_get(cursor, &key, &value, MDB_NEXT);

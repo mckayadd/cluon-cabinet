@@ -97,7 +97,7 @@ int32_t main(int32_t argc, char **argv) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-    std::vector<std::pair<int64_t, int64_t>> detectionSFC = identifyManeuversSFC(argv, CABINET, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver);
+    std::vector<std::pair<int64_t, int64_t>> detectionSFC = identifyManeuversSFC(argv, CABINET, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver, 0, 0);
   
     for(auto _temp : detectionSFC) {
       std::cout << "SFC: Maneuver detected at: " << _temp.first << ", " << _temp.second << std::endl;

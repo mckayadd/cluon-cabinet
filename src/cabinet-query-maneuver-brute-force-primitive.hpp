@@ -136,7 +136,7 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver_primitive(st
 
   
 
-  inline std::vector<std::pair<int64_t, int64_t>> cabinet_queryManeuverBruteForcePrimitive(const uint64_t &MEM, const std::string &CABINET, const bool &APLX, const bool &VERBOSE, const std::pair<float,float> _fenceBL, const std::pair<float,float> _fenceTR, std::vector<DrivingStatus*> _maneuver) {
+  inline std::vector<std::pair<int64_t, int64_t>> cabinet_queryManeuverBruteForcePrimitive(const uint64_t &MEM, const std::string &CABINET, const bool &APLX, const bool &VERBOSE, const std::pair<float,float> _fenceBL, const std::pair<float,float> _fenceTR, std::vector<DrivingStatus*> _maneuver, uint64_t db_start, uint64_t db_end, uint64_t &cntEntries) {
     bool failed{false};
 
     // Maneuver Detection
@@ -179,8 +179,11 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver_primitive(st
 
       int32_t oldPercentage{-1};
       uint64_t entries{0};
-      
+      db_start = db_start == 0 ? 0 : db_start;
+      db_end = db_end == 0 ? 1646827840115619000 : db_end;
+
       //while (mdb_cursor_get(cursor, &key, &value, MDB_NEXT_NODUP) == 0) {
+      bool firstFlag = true;
 
       for(DrivingStatus* _tempDS : _maneuver) {
 
@@ -199,7 +202,7 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver_primitive(st
             oldPercentage = percentage;
           }
           entries++;
-
+          
           MDB_val keyAll = key;
           MDB_val valueAll = value;
 
@@ -232,7 +235,15 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver_primitive(st
           auto e = cluon::extractEnvelope(sstr);
           if (e.first && e.second.dataType() == _ID) {
             // const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
-            //const auto tmp = cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second));
+            // const auto tmp = cluon::extractMessage<opendlv::device::gps::pos::Grp1Data>(std::move(e.second));
+
+            if(storedKey.timeStamp() < db_start)
+              continue;
+            if(storedKey.timeStamp() > db_end){
+              break;
+            }
+
+            if(firstFlag) cntEntries++;
 
             float _currAccelLon = 0;
             float _currAccelTrans = 0;
@@ -255,7 +266,6 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver_primitive(st
               _tempDrivingStatusList.push_back(storedKey.timeStamp());
             }
 
-            
             //not required since original database is sorted
             //sort(_tempDS->singleManeuverList.begin(), _tempDS->singleManeuverList.end(), cmp_sort_first);
             //if(VERBOSE) {
@@ -269,6 +279,7 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver_primitive(st
         _tempDS->singleManeuverList = detectSingleManeuver_primitive(&_tempDrivingStatusList, _tempDS->minDiffTime, _tempDS->minDuration, _tempDS->maxDuration);
 
         cursor.close();
+        firstFlag = false;
       }
 
       for(int status_idx = 0; status_idx < _maneuver[0]->singleManeuverList.size(); status_idx++) {

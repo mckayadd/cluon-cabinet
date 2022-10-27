@@ -46,6 +46,14 @@ inline float float_rand( float min, float max )
     return round((min + scale * ( max - min )) * 100) / 100;      /* [min, max] */
 }
 
+inline uint64_t ts_rand (uint64_t min, uint64_t max) 
+{
+    unsigned long seed = mix(clock(), time(NULL), getpid());
+    srand(seed);
+    float scale = rand() / (float) RAND_MAX; /* [0, 1.0] */
+    return round((min + scale * ( max - min )));      /* [min, max] */
+}
+
 inline std::vector<std::pair<int64_t, int64_t>> getFalseNegatives(std::vector<std::pair<int64_t, int64_t>> detection_BF, std::vector<std::pair<int64_t, int64_t>> detection_SFC) {
 
     std::vector<std::pair<int64_t, int64_t>> false_negatives;
