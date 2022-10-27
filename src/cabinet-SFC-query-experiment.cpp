@@ -201,8 +201,8 @@ int32_t main(int32_t argc, char **argv) {
          << "BL_x_2" << ", " << "BL_y_2" << ", " << "TR_x_2" << ", " << "TR_y_2" << ", "
          << "BL_x_3" << ", " << "BL_y_3" << ", " << "TR_x_3" << ", " << "TR_y_3" << std::endl;
 
-  int noRand = 5; //5
-  int noStages = 2;
+  int noRand = 5;//5
+  int noStages = 3;
   int noDbSize = 20; // 10
   int testCnt = 1;
 
@@ -211,8 +211,11 @@ int32_t main(int32_t argc, char **argv) {
   float min_y = -6.0f;
   float max_y = 6.0f;
 
-  uint64_t db_min =  1580389401359941000; // 1645098077131594000;
-  uint64_t db_max = 1646827840115619000; // 1645101199045973000;
+  //uint64_t db_min =  1580389401359941000; // großer Datensatz (server)
+  //uint64_t db_max = 1646827840115619000;
+
+  uint64_t db_min =  1645098077131594000; // kleiner Datensatz (lokal)
+  uint64_t db_max = 1645101199045973000; 
 
   int maxTest = noRand*noStages*noDbSize;
 
@@ -225,16 +228,18 @@ int32_t main(int32_t argc, char **argv) {
   //  for(int i = start; i < end; ++i){
       //std::cout << "test" << i << std::endl;
 
-  std::cout << "Fuzz relevant SearchMasks" << std::endl;
+  std::cout << std:: endl << "-------------------- Fuzz relevant SearchMasks ------------------------" << std::endl;
 
   std::vector<std::vector<DrivingStatus*>> maneuverList;
   std::vector<DrivingStatus*> maneuver;
 
   
-  int _curStage = 1;
+  int32_t oldPercentage{-1};
+  uint64_t entries{0};
+
   for(int cnt = 0; cnt < noRand; cnt++) {
     
-    for(i = 1; i <= noRand; i++) {
+    for(int _curStage = 1; _curStage <= noStages; _curStage++) {
 
       int fenceTry = 0;
       do {
@@ -258,26 +263,34 @@ int32_t main(int32_t argc, char **argv) {
           maneuver.push_back (manStage);
         }
         fenceTry++;
-        if(fenceTry > 1000) {
-          std::cout << "abbort criteria: more than 200 trys... proceed with bad search mask seed" << std::endl;
+        if(fenceTry > 750) {
+          std::cout << "abbort criteria: more than 500 trys... proceed with bad search mask seed" << std::endl;
           //goto resetDatabase;
           break;
         }
       } while((identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver, db_min, db_max).size() == 0));
       maneuverList.push_back(maneuver);
+
+      entries++;
+
+      const int32_t percentage = static_cast<int32_t>((static_cast<float>(entries) * 100.0f) / static_cast<float>(noRand*noStages));
+      if ((percentage != oldPercentage)) {
+        std::clog <<"Processed " << percentage << "% (" << entries << "/" << noRand*noStages << " Masks)" << std::endl;
+        oldPercentage = percentage;
+      }
+            
     }
-    _curStage++;
-    if(_curStage > noStages)
-      _curStage = 1;
     //std::cout << " ------------------- Fuzz SearchMasks Stage " << _curStage << " --------------" << std::endl;
   }
 
-  for (auto _man :maneuverList) {
+  std::cout << std:: endl << "-------------------- Fire up Testengine ------------------------" << std::endl;
+
+  /*for (auto _man :maneuverList) {
     for(auto tempMan : _man) {
-        std::cout << "BL: (" << tempMan->fenceBL.first << "," << tempMan->fenceBL.second << ") TR: (" << tempMan->fenceTR.first << "," << tempMan->fenceTR.second  << ")" << std::endl;
+        std::cout << std::endl << "BL: (" << tempMan->fenceBL.first << "," << tempMan->fenceBL.second << ") TR: (" << tempMan->fenceTR.first << "," << tempMan->fenceTR.second  << ")" << std::endl;
       }
     std::cout << " -------------------" << std::endl;
-  }
+  }*/
 
 
   for(int db_sizeCNT = 0; db_sizeCNT < noDbSize; db_sizeCNT++) {
