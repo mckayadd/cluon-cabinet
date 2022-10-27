@@ -211,11 +211,11 @@ int32_t main(int32_t argc, char **argv) {
   float min_y = -6.0f;
   float max_y = 6.0f;
 
-  //uint64_t db_min =  1580389401359941000; // großer Datensatz (server)
-  //uint64_t db_max = 1646827840115619000;
+  uint64_t db_min =  1580389401359941000; // großer Datensatz (server)
+  uint64_t db_max = 1646827840115619000;
 
-  uint64_t db_min =  1645098077131594000; // kleiner Datensatz (lokal)
-  uint64_t db_max = 1645101199045973000; 
+  //uint64_t db_min =  1645098077131594000; // kleiner Datensatz (lokal)
+  //uint64_t db_max = 1645101199045973000; 
 
   int maxTest = noRand*noStages*noDbSize;
 
