@@ -255,7 +255,7 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver_primitive(st
               _tempDrivingStatusList.push_back(storedKey.timeStamp());
             }
 
-            _tempDS->singleManeuverList = detectSingleManeuver_primitive(&_tempDrivingStatusList, _tempDS->minDiffTime, _tempDS->minDuration, _tempDS->maxDuration);
+            
             //not required since original database is sorted
             //sort(_tempDS->singleManeuverList.begin(), _tempDS->singleManeuverList.end(), cmp_sort_first);
             //if(VERBOSE) {
@@ -266,6 +266,8 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver_primitive(st
 
           }
         }
+        _tempDS->singleManeuverList = detectSingleManeuver_primitive(&_tempDrivingStatusList, _tempDS->minDiffTime, _tempDS->minDuration, _tempDS->maxDuration);
+
         cursor.close();
       }
 
