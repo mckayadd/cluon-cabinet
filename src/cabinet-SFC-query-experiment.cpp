@@ -196,7 +196,7 @@ int32_t main(int32_t argc, char **argv) {
   resultDatei << "ID" << ", " << "db_start" << ", " << "db_end" << ", " << "entryCNT" << ", " << "duration_BF_primitive" << ", " << "duration_BF" << ", " <<  "duration_SFC" << ", "
          << "detection_BF_primitive.size()" << ", " << "detection_BF.size()" << ", " << "detection_SFC.size()" << ", "
          <<  "false_negatives_BF.size()" << ", " <<  "false_positives_BF.size()" << ", "
-         << "false_negatives_SFC.size()" << ", " << "false_positives_SFC.size()" << ", "
+         << "false_negatives_SFC.size()" << ", " << "false_positives_SFC.size()" << ", " << "maneuver.size()" << ", "
          << "BL_x_1" << ", " << "BL_y_1" << ", " << "TR_x_1" << ", " << "TR_y_1" << ", "
          << "BL_x_2" << ", " << "BL_y_2" << ", " << "TR_x_2" << ", " << "TR_y_2" << ", "
          << "BL_x_3" << ", " << "BL_y_3" << ", " << "TR_x_3" << ", " << "TR_y_3" << std::endl;
@@ -433,7 +433,7 @@ int32_t main(int32_t argc, char **argv) {
           resultDatei << testCnt << ", " << db_start << ", " << db_end << ", " << entryCNT << ", " << duration_BF_primitive << ", " << duration_BF << ", " <<  duration_SFC << ", "
             << detection_BF_primitive.size() << ", " << detection_BF.size() << ", " << detection_SFC.size() << ", "
             <<  false_negatives_BF.size() << ", " <<  false_positives_BF.size() << ", "
-            << false_negatives_SFC.size() << ", " << false_positives_SFC.size();
+            << false_negatives_SFC.size() << ", " << false_positives_SFC.size() << ", " << maneuver.size();
 
           //std::string temp;
           //temp = i;
