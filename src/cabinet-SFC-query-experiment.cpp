@@ -201,9 +201,9 @@ int32_t main(int32_t argc, char **argv) {
          << "BL_x_2" << ", " << "BL_y_2" << ", " << "TR_x_2" << ", " << "TR_y_2" << ", "
          << "BL_x_3" << ", " << "BL_y_3" << ", " << "TR_x_3" << ", " << "TR_y_3" << std::endl;
 
-  int noRand = 2;
+  int noRand = 5; //5
   int noStages = 2;
-  int noDbSize = 3;
+  int noDbSize = 20; // 10
   int testCnt = 1;
 
   float min_x = -8.0f;
@@ -221,11 +221,70 @@ int32_t main(int32_t argc, char **argv) {
 
   int i = 1;
 
+  //parallel_for(noDbSize, [&](int start, int end){ 
+  //  for(int i = start; i < end; ++i){
+      //std::cout << "test" << i << std::endl;
+
+  std::cout << "Fuzz relevant SearchMasks" << std::endl;
+
+  std::vector<std::vector<DrivingStatus*>> maneuverList;
+  std::vector<DrivingStatus*> maneuver;
+
+  
+  int _curStage = 1;
+  for(int cnt = 0; cnt < noRand; cnt++) {
+    
+    for(i = 1; i <= noRand; i++) {
+
+      int fenceTry = 0;
+      do {
+        maneuver.clear();
+        for(int _stages=0; _stages < _curStage; _stages++) {
+
+          _fenceBL.first = float_rand( min_x,  max_x-0.1 );
+          _fenceBL.second = float_rand( min_y,  max_y-0.1 );
+          _fenceTR.first = float_rand( _fenceBL.first,  max_x );
+          _fenceTR.second = float_rand( _fenceBL.second,  max_y );
+
+          DrivingStatus *manStage  = new DrivingStatus( "Maneuver stage",
+                  _fenceBL,
+                  _fenceTR,
+                  200000000, // 500000000
+                  3000000000,
+                  -200000000,
+                  2000000000,
+                  50000000);
+
+          maneuver.push_back (manStage);
+        }
+        fenceTry++;
+        if(fenceTry > 1000) {
+          std::cout << "abbort criteria: more than 200 trys... proceed with bad search mask seed" << std::endl;
+          //goto resetDatabase;
+          break;
+        }
+      } while((identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver, db_min, db_max).size() == 0));
+      maneuverList.push_back(maneuver);
+    }
+    _curStage++;
+    if(_curStage > noStages)
+      _curStage = 1;
+    //std::cout << " ------------------- Fuzz SearchMasks Stage " << _curStage << " --------------" << std::endl;
+  }
+
+  for (auto _man :maneuverList) {
+    for(auto tempMan : _man) {
+        std::cout << "BL: (" << tempMan->fenceBL.first << "," << tempMan->fenceBL.second << ") TR: (" << tempMan->fenceTR.first << "," << tempMan->fenceTR.second  << ")" << std::endl;
+      }
+    std::cout << " -------------------" << std::endl;
+  }
+
+
   for(int db_sizeCNT = 0; db_sizeCNT < noDbSize; db_sizeCNT++) {
 
     //resetDatabase:
 
-    if(i == 1) {
+    if(db_sizeCNT == 0) {
       db_start = db_min;
       db_end = db_max;
     } else {
@@ -233,46 +292,47 @@ int32_t main(int32_t argc, char **argv) {
       db_end = ts_rand(db_start, db_max);
     }
     
-    for(int cur_stage = 1; cur_stage <= noStages; cur_stage++) {
+    //for(int cur_stage = 1; cur_stage <= noStages; cur_stage++) {
 
-      for(i = 1; i <= noRand; i++) {
+    
+    for(auto maneuver: maneuverList) {
       ////////////////////////////////////////////////////////////////////////////////
 
           
           std::cout << std::endl << "------------------------------------ Test " << testCnt << "/" << maxTest << " -----------------------------"  << std::endl;
           
-          std::vector<DrivingStatus*> maneuver;
+          //std::vector<DrivingStatus*> maneuver;
 
-          std::cout << "Fuzz relevant SearchMask" << std::endl;
+          //std::cout << "Fuzz relevant SearchMask" << std::endl;
 
-          int fenceTry = 0;
-          do {
-            maneuver.clear();
-            for(int _stages=0; _stages < cur_stage; _stages++) {
+          // int fenceTry = 0;
+          // do {
+          //   maneuver.clear();
+          //   for(int _stages=0; _stages < cur_stage; _stages++) {
 
-              _fenceBL.first = float_rand( min_x,  max_x-0.1 );
-              _fenceBL.second = float_rand( min_y,  max_y-0.1 );
-              _fenceTR.first = float_rand( _fenceBL.first,  max_x );
-              _fenceTR.second = float_rand( _fenceBL.second,  max_y );
+          //     _fenceBL.first = float_rand( min_x,  max_x-0.1 );
+          //     _fenceBL.second = float_rand( min_y,  max_y-0.1 );
+          //     _fenceTR.first = float_rand( _fenceBL.first,  max_x );
+          //     _fenceTR.second = float_rand( _fenceBL.second,  max_y );
 
-              DrivingStatus *manStage  = new DrivingStatus( "Maneuver stage",
-                      _fenceBL,
-                      _fenceTR,
-                      200000000, // 500000000
-                      3000000000,
-                      -200000000,
-                      2000000000,
-                      50000000);
+          //     DrivingStatus *manStage  = new DrivingStatus( "Maneuver stage",
+          //             _fenceBL,
+          //             _fenceTR,
+          //             200000000, // 500000000
+          //             3000000000,
+          //             -200000000,
+          //             2000000000,
+          //             50000000);
 
-              maneuver.push_back (manStage);
-            }
-            fenceTry++;
-            if(fenceTry > 200) {
-              std::cout << "abbort criteria: more than 200 trys... proceed with bad search mask seed" << std::endl;
-              //goto resetDatabase;
-              break;
-            }
-          } while((identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver, db_start, db_end).size() == 0));
+          //     maneuver.push_back (manStage);
+          //   }
+          //   fenceTry++;
+          //   if(fenceTry > 200) {
+          //     std::cout << "abbort criteria: more than 200 trys... proceed with bad search mask seed" << std::endl;
+          //     //goto resetDatabase;
+          //     break;
+          //   }
+          // } while((identifyManeuversSFC(argv, CABINET_SFC, MEM, VERBOSE, THR, APLX, geoboxStrings, geoboxBL, geoboxTR, maneuver, db_start, db_end).size() == 0));
 
 
           for(auto tempMan : maneuver) {
@@ -377,8 +437,10 @@ int32_t main(int32_t argc, char **argv) {
           testCnt++;
         }
       }
-    }
+    //}
+    //}});
   }
+  
 
   std::cout << std::endl << "Please find all results in result.txt" << std::endl;
 
