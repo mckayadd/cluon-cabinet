@@ -305,6 +305,7 @@ inline std::vector<std::pair<int64_t, int64_t>> identifyManeuversSFC(char **argv
               0,
               160000000);
 
+          maneuver.clear();
           maneuver.push_back(_tempDS);
         }
 
