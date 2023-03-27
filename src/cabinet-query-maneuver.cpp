@@ -91,9 +91,9 @@ int32_t main(int32_t argc, char **argv) {
 
     std::vector<DrivingStatus*> maneuver;
     
-    maneuver.push_back(leftCurve);
-    maneuver.push_back(rightCurve);
-    //maneuver.push_back(harsh_braking);
+    //maneuver.push_back(leftCurve);
+    //maneuver.push_back(rightCurve);
+    maneuver.push_back(harsh_braking);
 
 ////////////////////////////////////////////////////////////////////////////////
 
