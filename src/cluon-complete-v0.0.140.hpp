@@ -1,3 +1,6 @@
+#ifdef __APPLE__
+  #include <utility>
+#endif
 // This is an auto-generated header-only single-file distribution of libcluon.
 // Date: Thu, 04 Feb 2021 12:20:57 +0000
 // Version: 0.0.140

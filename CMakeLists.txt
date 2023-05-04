@@ -39,7 +39,7 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
   -D_XOPEN_SOURCE=700 \
   -D_FORTIFY_SOURCE=2 \
-  -O2 \
+  -g \
   -fstack-protector \
   -fomit-frame-pointer \
   -pipe \
