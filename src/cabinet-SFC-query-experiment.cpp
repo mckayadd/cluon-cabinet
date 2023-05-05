@@ -34,8 +34,8 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "         --thr:    lower threshold in morton space e.g. 31634000000 or 33400000000 (emergency braking); alternative to --geobox (thr is prioritized)" << std::endl;
     std::cerr << "         --geobox: return all timeStamps for GPS locations within this rectangle specified by bottom-left and top-right lat/longs" << std::endl;
     std::cerr << "         --aplx:   Applenix data required (e.g. Snowfox)? default: no (e.g. Voyager)" << std::endl;
-    std::cerr << "         --start:   start time stamp" << std::endl;
-    std::cerr << "         --end:   end time stamp" << std::endl;
+    std::cerr << "         --start:  start time stamp" << std::endl;
+    std::cerr << "         --end:    end time stamp" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab --geobox=57.679000,12.309931,57.679690,12.312700" << std::endl;
     retCode = 1;
   } else {    
@@ -46,9 +46,11 @@ int32_t main(int32_t argc, char **argv) {
     const uint64_t THR{(commandlineArguments.count("thr") != 0) ? static_cast<uint64_t>(std::stol(commandlineArguments["thr"])) : 0};
     const std::string GEOBOX{commandlineArguments["geobox"]};
     const bool APLX{commandlineArguments["aplx"].size() != 0};
-    const uint64_t START{(commandlineArguments.count("start") != 0) ? static_cast<uint64_t>(std::stol(commandlineArguments["start"])) : 0};
-    const uint64_t END{(commandlineArguments.count("end") != 0) ? static_cast<uint64_t>(std::stol(commandlineArguments["end"])) : 0};
+    const uint64_t START{(commandlineArguments.count("start") != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["start"])) : 0};
+    const uint64_t END{(commandlineArguments.count("end") != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["end"])) : 0};
 
+    std::cerr << "Start: " << START << ", End: " << END << std::endl;
+    
     std::vector<std::string> geoboxStrings = stringtoolbox::split(GEOBOX, ',');
     std::pair<float,float> geoboxBL;
     std::pair<float,float> geoboxTR;
