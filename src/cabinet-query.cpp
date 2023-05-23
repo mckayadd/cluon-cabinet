@@ -11,6 +11,7 @@
 #include "db.hpp"
 #include "lmdb.h"
 #include "morton.hpp"
+#include "geofence.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -39,11 +40,29 @@ int32_t main(int32_t argc, char **argv) {
     std::vector<std::string> geoboxStrings = stringtoolbox::split(GEOBOX, ',');
     std::pair<float,float> geoboxBL;
     std::pair<float,float> geoboxTR;
+
+    std::pair<float,float> geoboxTL;
+    std::pair<float,float> geoboxBR;
+    std::vector<std::array<double,2>> polygon;
     if (4 == geoboxStrings.size()) {
       geoboxBL.first = std::stof(geoboxStrings.at(0));
       geoboxBL.second = std::stof(geoboxStrings.at(1));
       geoboxTR.first = std::stof(geoboxStrings.at(2));
       geoboxTR.second = std::stof(geoboxStrings.at(3));
+
+      geoboxTL.first = std::stof(geoboxStrings.at(2));
+      geoboxTL.second = std::stof(geoboxStrings.at(1));
+      geoboxBR.first = std::stof(geoboxStrings.at(0));
+      geoboxBR.second = std::stof(geoboxStrings.at(3));
+
+      std::array<double,2> a{geoboxBL.first, geoboxBL.second};
+      std::array<double,2> b{geoboxBR.first, geoboxBR.second};
+      std::array<double,2> c{geoboxTR.first, geoboxTR.second};
+      std::array<double,2> d{geoboxTL.first, geoboxTL.second};
+      polygon.push_back(a);
+      polygon.push_back(b);
+      polygon.push_back(c);
+      polygon.push_back(d);
     }
 
     MDB_env *env{nullptr};
@@ -123,7 +142,10 @@ int32_t main(int32_t argc, char **argv) {
                 if (VERBOSE) {
                   std::cout << bl_morton << ";" << morton << ";" << tr_morton << ";";
                 }
-                std::cout << std::setprecision(10) << decodedLatLon.first << ";" << decodedLatLon.second << ";" << timeStamp << std::endl;
+                std::array<double,2> pos{decodedLatLon.first, decodedLatLon.second};
+                if (geofence::isIn<double>(polygon, pos)) {
+                  std::cout << std::setprecision(10) << decodedLatLon.first << ";" << decodedLatLon.second << ";" << timeStamp << std::endl;
+                }
               }
             }
           }
