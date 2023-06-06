@@ -221,6 +221,9 @@ target_link_libraries(cabinet-DumpTrips ${LIBRARIES})
 add_executable(cabinet-SFC-query-experiment ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-SFC-query-experiment.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
 target_link_libraries(cabinet-SFC-query-experiment ${LIBRARIES})
 
+add_executable(cabinet-SFC-query ${CMAKE_CURRENT_SOURCE_DIR}/src/cabinet-SFC-query.cpp ${CMAKE_BINARY_DIR}/cluon-complete.hpp ${GENERATED_HEADERS})
+target_link_libraries(cabinet-SFC-query ${LIBRARIES})
+
 ################################################################################
 enable_testing()
 add_executable(key-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/tests-key.cpp ${GENERATED_HEADERS})
@@ -257,3 +260,4 @@ install(TARGETS cabinet-WGS84toTrips DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-query DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-query-maneuver DESTINATION bin COMPONENT ${PROJECT_NAME})
 install(TARGETS cabinet-DumpTrips DESTINATION bin COMPONENT ${PROJECT_NAME})
+install(TARGETS cabinet-SFC-query DESTINATION bin COMPONENT ${PROJECT_NAME})
