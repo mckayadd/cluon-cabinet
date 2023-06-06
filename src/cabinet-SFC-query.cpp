@@ -31,6 +31,8 @@ int32_t main(int32_t argc, char **argv) {
     std::cerr << "         --db:       name of the database to be used inside the cabinet file; default: 1030/0-morton" << std::endl;
     std::cerr << "         --mem:      upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
     std::cerr << "         --box:      return all timeStamps within this rectangle specified by bottom-left and top-right X/Y accelerations; default: 0,-2,2,2" << std::endl;
+    std::cerr << "         --start:    only include matching timeStamps that are larger than or equal to this timepoint in nanoseconds; default: 0" << std::endl;
+    std::cerr << "         --end:      only include matching timeStamps that are less than this timepoint in nanoseconds; default: MAX" << std::endl;
     std::cerr << "         --print:    prints the matching timestamps" << std::endl;
     std::cerr << "         --verbose" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab --box=0,-2,2,2   # random driving" << std::endl;
@@ -41,6 +43,8 @@ int32_t main(int32_t argc, char **argv) {
     const std::string DB{(commandlineArguments["db"].size() != 0) ? commandlineArguments["db"] : "1030/0-morton"};
     const uint64_t MEM{(commandlineArguments["mem"].size() != 0) ? static_cast<uint64_t>(std::stoi(commandlineArguments["mem"])) : 64UL*1024UL};
     const std::string BOX{(commandlineArguments["box"].size() != 0) ? commandlineArguments["box"] : "0,-2,2,2"}; // random driving maneuver
+    const uint64_t START{(commandlineArguments.count("start") != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["start"])) : 0};
+    const uint64_t END{(commandlineArguments.count("end") != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["end"])) : std::numeric_limits<uint64_t>::max()};
     const bool PRINT{commandlineArguments["print"].size() != 0};
     const bool VERBOSE{commandlineArguments["verbose"].size() != 0};
 
@@ -147,11 +151,14 @@ int32_t main(int32_t argc, char **argv) {
                 // with geofence test: Extracted 153162/239923 from db '1030/2-morton' using the FakeEuroFOT database.
               }
             }
-            entries = listOfTimeStamps.size();
             std::sort(listOfTimeStamps.begin(), listOfTimeStamps.end());
             if (PRINT) {
               for (auto i : listOfTimeStamps) {
-                std::cout << i << ",";
+                uint64_t _i = static_cast<uint64_t>(i);
+                if ( (_i >= START) && (_i < END) ) {
+                  std::cout << i << ",";
+                  entries++;
+                }
               }
               std::cout << std::endl;
             }
