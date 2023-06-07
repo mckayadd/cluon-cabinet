@@ -148,8 +148,6 @@ int32_t main(int32_t argc, char **argv) {
                   uint64_t _timeStamp = static_cast<uint64_t>(timeStamp);
                   listOfTimeStamps.push_back(_timeStamp);
                 }
-                // no geofence test:   Extracted 237607/239923 from db '1030/2-morton' using the FakeEuroFOT database.
-                // with geofence test: Extracted 153162/239923 from db '1030/2-morton' using the FakeEuroFOT database.
               }
             }
             std::sort(listOfTimeStamps.begin(), listOfTimeStamps.end());
