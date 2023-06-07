@@ -21,19 +21,69 @@
 #include <iostream>
 #include <string>
 
+std::vector<std::pair<uint64_t,uint64_t>> detectSingleManeuver(std::vector<uint64_t> _tempDrivingStatusList, uint64_t minDiffTime, uint64_t minDuration, uint64_t maxDuration) {
+  sort(_tempDrivingStatusList.begin(), _tempDrivingStatusList.end());
+
+  uint64_t _tsStart = 0;
+  uint64_t _tsEnd = 0;
+
+  std::vector<std::pair<uint64_t,uint64_t>> _singleManeuverList;
+
+  for(size_t i=0; i < _tempDrivingStatusList.size(); i++) {
+    if(0==i){
+      _tsStart = (_tempDrivingStatusList)[i];
+      continue;
+    }
+
+    //if(((*_tempDrivingStatusList)[i] >= 1645098108930034000) && ((*_tempDrivingStatusList)[i] <= 1645098112159906000))
+    //  std::cout << (*_tempDrivingStatusList)[i] << "; " << (*_tempDrivingStatusList)[i-1] << "; " << (*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1] << std::endl;
+
+    if((minDiffTime < (_tempDrivingStatusList)[i] - (_tempDrivingStatusList)[i-1]) || (i == (_tempDrivingStatusList.size()-1))) {
+      
+      _tsEnd = (_tempDrivingStatusList)[i-1];
+
+      if(i == (_tempDrivingStatusList.size()-1) && (minDiffTime > (_tempDrivingStatusList)[i] - (_tempDrivingStatusList)[i-1]))
+      {
+        _tsEnd = (_tempDrivingStatusList)[i];
+      }
+
+      
+      uint64_t duration = _tsEnd - _tsStart;
+      //std::cout << duration << "; " << (*_tempDrivingStatusList)[i] << "; " << abs((*_tempDrivingStatusList)[i] - (*_tempDrivingStatusList)[i-1]) << std::endl;
+      
+      if((duration > minDuration) && (duration < maxDuration)) {
+        std::pair<uint64_t,uint64_t> _tempMan;
+        _tempMan.first = _tsStart;
+        _tempMan.second = _tsEnd;
+
+        _singleManeuverList.push_back(_tempMan);
+      }
+
+      _tsStart = (_tempDrivingStatusList)[i];
+      // TODO: irgendwas mit Start ist kaputt
+    }
+  }
+
+  return _singleManeuverList;
+}
+
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
   auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
   if ( (0 == commandlineArguments.count("cab")) ) {
     std::cerr << argv[0] << " query a cabinet (an lmdb-based key/value-database with accelerations in Morton format)." << std::endl;
     std::cerr << "Usage:   " << argv[0] << " --cab=myStore.cab [--mem=32024] --box=bottom-left-accelX,bottom-left-accelY,top-right-accelX,top-right-accelY" << std::endl;
-    std::cerr << "         --cab:      name of the cabinet file" << std::endl;
-    std::cerr << "         --db:       name of the database to be used inside the cabinet file; default: 1030/0-morton" << std::endl;
-    std::cerr << "         --mem:      upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
-    std::cerr << "         --box:      return all timeStamps within this rectangle specified by bottom-left and top-right X/Y accelerations; default: 0,-2,2,2" << std::endl;
-    std::cerr << "         --start:    only include matching timeStamps that are larger than or equal to this timepoint in nanoseconds; default: 0" << std::endl;
-    std::cerr << "         --end:      only include matching timeStamps that are less than this timepoint in nanoseconds; default: MAX" << std::endl;
-    std::cerr << "         --print:    prints the matching timestamps" << std::endl;
+    std::cerr << "         --cab:         name of the cabinet file" << std::endl;
+    std::cerr << "         --db:          name of the database to be used inside the cabinet file; default: 1030/0-morton" << std::endl;
+    std::cerr << "         --mem:         upper memory size for database in memory in GB, default: 64,000 (representing 64TB)" << std::endl;
+    std::cerr << "         --box:         return all timeStamps within this rectangle specified by bottom-left and top-right X/Y accelerations; default: 0,-2,2,2" << std::endl;
+    std::cerr << "         --start:       only include matching timeStamps that are larger than or equal to this timepoint in nanoseconds; default: 0" << std::endl;
+    std::cerr << "         --end:         only include matching timeStamps that are less than this timepoint in nanoseconds; default: MAX" << std::endl;
+    std::cerr << "         --printAll:    prints all timestamp candidates" << std::endl;
+    std::cerr << "         --print:       prints only timestamps matching duration criteria" << std::endl;
+    std::cerr << "         --minDiffTime: minimal difference between two consecutive timestamps in ms; default: 50" << std::endl;
+    std::cerr << "         --minDuration: minimum duration of a maneuver in ms; default: 200" << std::endl;
+    std::cerr << "         --maxDuration: maximum duration of a maneuver in ms; default: 3000" << std::endl;
     std::cerr << "         --verbose" << std::endl;
     std::cerr << "Example: " << argv[0] << " --cab=myStore.cab --box=0,-2,2,2   # random driving" << std::endl;
     std::cerr << "         " << argv[0] << " --cab=myStore.cab --box=4,-4,10,4  # harsh braking" << std::endl;
@@ -45,7 +95,11 @@ int32_t main(int32_t argc, char **argv) {
     const std::string BOX{(commandlineArguments["box"].size() != 0) ? commandlineArguments["box"] : "0,-2,2,2"}; // random driving maneuver
     const uint64_t START{(commandlineArguments.count("start") != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["start"])) : 0};
     const uint64_t END{(commandlineArguments.count("end") != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["end"])) : std::numeric_limits<uint64_t>::max()};
+    const bool PRINTALL{commandlineArguments["printAll"].size() != 0};
     const bool PRINT{commandlineArguments["print"].size() != 0};
+    const uint64_t MIN_DIFF_TIME{(commandlineArguments.count("minDiffTime") != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["minDiffTime"])) * 1000UL * 1000UL : 50UL * 1000UL * 1000UL};
+    const uint64_t MIN_DURATION{(commandlineArguments.count("minDuration") != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["minDuration"])) * 1000UL * 1000UL : 200UL * 1000UL * 1000UL};
+    const uint64_t MAX_DURATION{(commandlineArguments.count("maxDuration") != 0) ? static_cast<uint64_t>(std::stoll(commandlineArguments["maxDuration"])) * 1000UL * 1000UL : 3000UL * 1000UL * 1000UL};
     const bool VERBOSE{commandlineArguments["verbose"].size() != 0};
 
     std::vector<std::string> boxStrings = stringtoolbox::split(BOX, ',');
@@ -151,7 +205,7 @@ int32_t main(int32_t argc, char **argv) {
               }
             }
             std::sort(listOfTimeStamps.begin(), listOfTimeStamps.end());
-            if (PRINT) {
+            if (PRINTALL) {
               for (auto i : listOfTimeStamps) {
                 if ( (i >= START) && (i < END) ) {
                   std::cout << i << ",";
@@ -159,6 +213,20 @@ int32_t main(int32_t argc, char **argv) {
                 }
               }
               std::cout << std::endl;
+            }
+            if (PRINT) {
+              // Only consider those entries that are between [START, END[.
+              std::vector<uint64_t> subsetOfTimeStamps;
+              for (auto i : listOfTimeStamps) {
+                if ( (i >= START) && (i < END) ) {
+                  subsetOfTimeStamps.push_back(i);
+                }
+              }
+              std::vector<std::pair<uint64_t,uint64_t>> listOfManeuvers = detectSingleManeuver(subsetOfTimeStamps, MIN_DIFF_TIME, MIN_DURATION, MAX_DURATION);
+              for (auto e : listOfManeuvers) {
+                entries++;
+                std::cout << entries << ".: " << e.first << " -> " << e.second << ", d = " << (e.second - e.first)/(1000UL*1000UL) << "ms" << std::endl;
+              }
             }
           }
         } catch (const lmdb::error& error) {
