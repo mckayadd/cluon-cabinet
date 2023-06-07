@@ -119,7 +119,7 @@ int32_t main(int32_t argc, char **argv) {
         key.mv_data = &_bl_morton;
         try {
           if (cursor.get(&key, &value, MDB_SET_RANGE)) {
-            std::vector<int64_t> listOfTimeStamps;
+            std::vector<uint64_t> listOfTimeStamps;
             while (cursor.get(&key, &value, MDB_NEXT)) {
               // Get next Morton-ized value.
               uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
@@ -145,7 +145,8 @@ int32_t main(int32_t argc, char **argv) {
                     std::cerr << "[" << argv[0] << "] " << bl_morton << ";" << morton << ";" << tr_morton << ": " 
                               << std::setprecision(4) << decodedAccelLonTrans.first << "," << decodedAccelLonTrans.second << "@" << timeStamp << std::endl;
                   }
-                  listOfTimeStamps.push_back(timeStamp);
+                  uint64_t _timeStamp = static_cast<uint64_t>(timeStamp);
+                  listOfTimeStamps.push_back(_timeStamp);
                 }
                 // no geofence test:   Extracted 237607/239923 from db '1030/2-morton' using the FakeEuroFOT database.
                 // with geofence test: Extracted 153162/239923 from db '1030/2-morton' using the FakeEuroFOT database.
@@ -154,8 +155,7 @@ int32_t main(int32_t argc, char **argv) {
             std::sort(listOfTimeStamps.begin(), listOfTimeStamps.end());
             if (PRINT) {
               for (auto i : listOfTimeStamps) {
-                uint64_t _i = static_cast<uint64_t>(i);
-                if ( (_i >= START) && (_i < END) ) {
+                if ( (i >= START) && (i < END) ) {
                   std::cout << i << ",";
                   entries++;
                 }
