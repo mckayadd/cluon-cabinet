@@ -110,6 +110,7 @@ int32_t main(int32_t argc, char **argv) {
         auto cursor = lmdb::cursor::open(rotxn, dbi);
 
         uint64_t entries{0};
+        std::vector<uint64_t> listOfTimeStamps;
         MDB_val key;
         MDB_val value;
 
@@ -119,7 +120,6 @@ int32_t main(int32_t argc, char **argv) {
         key.mv_data = &_bl_morton;
         try {
           if (cursor.get(&key, &value, MDB_SET_RANGE)) {
-            std::vector<uint64_t> listOfTimeStamps;
             while (cursor.get(&key, &value, MDB_NEXT)) {
               // Get next Morton-ized value.
               uint64_t morton = *reinterpret_cast<uint64_t*>(key.mv_data);
@@ -168,7 +168,7 @@ int32_t main(int32_t argc, char **argv) {
         cursor.close();
 
         if (VERBOSE) {
-          std::cerr << "[" << argv[0] << "] Extracted " << entries << "/" << totalEntries << " from db '" << DB << "'" << std::endl;
+          std::cerr << "[" << argv[0] << "] Extracted " << entries << " from " << listOfTimeStamps.size() << " matching entries." << std::endl;
         }
 
         // As we use the database in read-only mode, we simply abort the transaction.
