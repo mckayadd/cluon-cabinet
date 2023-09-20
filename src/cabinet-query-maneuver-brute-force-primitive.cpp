@@ -54,74 +54,15 @@ int32_t main(int32_t argc, char **argv) {
         std::pair<float,float> boxBL;
         boxBL.first = std::stof(boxStrings.at(0));
         boxBL.second = std::stof(boxStrings.at(1));
-        // const uint64_t bl_morton{convertAccelLonTransToMorton(boxBL)};
 
         std::pair<float,float> boxTR;
         boxTR.first = std::stof(boxStrings.at(2));
         boxTR.second = std::stof(boxStrings.at(3)); 
-        // const uint64_t tr_morton{convertAccelLonTransToMorton(boxTR)};
-
-      //////////////////////////////////////////////////////////////
-
-      // _fenceBL.first = -1.5; _fenceBL.second = 0.15;
-      // _fenceTR.first = 0.75; _fenceTR.second = 5;
-      // DrivingStatus *leftCurve  = new DrivingStatus( "leftCurve",
-      //         _fenceBL,
-      //         _fenceTR,
-      //         500000000,
-      //         3000000000,
-      //         -200000000,
-      //         2000000000,
-      //         50000000);
-
-      // _fenceBL.first = -1.5; _fenceBL.second = -5;
-      // _fenceTR.first = 0.75; _fenceTR.second = -0.15;
-      // DrivingStatus *rightCurve = new DrivingStatus( "rightCurve",
-      //         _fenceBL,
-      //         _fenceTR,
-      //         500000000,
-      //         3000000000,
-      //         -200000000,
-      //         2000000000,
-      //         50000000);
-
-      // _fenceBL.first = 0.0f; _fenceBL.second = -2.0f;
-      // _fenceTR.first = 2.0f; _fenceTR.second = 2.0f;
-      // DrivingStatus *harsh_braking = new DrivingStatus( "harsh_braking",
-      //         _fenceBL,
-      //         _fenceTR,
-      //         300000000, // 500000000
-      //         301000000,
-      //         -200000000,
-      //         2000000000,
-      //         50000000);
-
-      std::vector<DrivingStatus*> maneuver;
-      
-      
-      // maneuver.push_back(leftCurve);
-      // maneuver.push_back(rightCurve);
-      // maneuver.push_back(harsh_braking);
 
       ////////////////////////////////////////////////////////////////////////////////
       uint64_t entryCNT = 0;
-
-      // std::cout<< "####### Before function call: " << _fenceBL.first << " " << _fenceBL.second << "  ---  " << _fenceTR.first << " " << _fenceTR.second << std::endl;
-      // _fenceBL.first = 0.73;
-      // _fenceBL.second = 0.24;
-      // _fenceTR.first = 4.54;
-      // _fenceTR.second = 3.26;
       
-      DrivingStatus *drivingstatus = new DrivingStatus( "random maneuver",
-              boxBL,
-              boxTR,
-              MIN_DURATION, // 500000000
-              MAX_DURATION,
-              -200000000,
-              2000000000,
-              MIN_DIFF_TIME);
-      
-      std::vector<std::pair<int64_t, int64_t>> detectionBF = cabinet_queryManeuverBruteForcePrimitive(MEM, CABINET, DB, PRINT, boxBL, boxTR, drivingstatus, 0, 0, entryCNT);
+      std::vector<std::pair<int64_t, int64_t>> detectionBF = cabinet_queryManeuverBruteForcePrimitive(MEM, CABINET, DB, PRINT, boxBL, boxTR, MIN_DURATION, MAX_DURATION, MIN_DIFF_TIME, entryCNT);
       if(PRINT) {
         int i = 0;
         for(auto _temp : detectionBF) {
@@ -135,4 +76,3 @@ int32_t main(int32_t argc, char **argv) {
   }
   return retCode;
 }
-
