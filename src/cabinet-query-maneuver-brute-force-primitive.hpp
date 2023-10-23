@@ -154,59 +154,56 @@ inline std::vector<std::pair<int64_t,int64_t>> detectSingleManeuver_primitive(st
 
       // Start the database traversal
       try {
-        if (cursor.get(&key, &value, MDB_FIRST)) {
-          while (cursor.get(&key, &value, MDB_NEXT)) {
-            
-            entries++;
-            
-            MDB_val keyAll = key;
-            MDB_val valueAll = value;
+        while (cursor.get(&key, &value, MDB_NEXT)) {
+          
+          entries++;
+          
+          MDB_val keyAll = key;
+          MDB_val valueAll = value;
 
-            // if we dump another table than "all", we need to look up the actual values from the original "all" table first.
-            if (DB != "all") {
-              keyAll = key;
+          // if we dump another table than "all", we need to look up the actual values from the original "all" table first.
+          if (DB != "all") {
+            keyAll = key;
 
-              if (!lmdb::dbi_get(rotxn, dbiAll, &keyAll, &valueAll)) {
-                continue;
-              }
-            }
-
-            const char *ptr = static_cast<char*>(keyAll.mv_data);
-            cabinet::Key storedKey = getKey(ptr, keyAll.mv_size);
-
-            std::vector<char> val;
-            val.reserve(storedKey.length());
-            if (storedKey.length() > valueAll.mv_size) {
-              LZ4_decompress_safe(static_cast<char*>(valueAll.mv_data), val.data(), valueAll.mv_size, val.capacity());
-            }
-            else {
-              // Stored value is uncompressed.
-              memcpy(val.data(), static_cast<char*>(valueAll.mv_data), valueAll.mv_size);
-            }
-            // Extract an Envelope and its payload on the example for AccelerationReading
-            std::stringstream sstr{std::string(val.data(), storedKey.length())};
-            auto e = cluon::extractEnvelope(sstr);
-            if (e.first && e.second.dataType() == _ID) {
-
-              if(firstFlag) cntEntries++;
-
-              float _currAccelLon = 0;
-              float _currAccelTrans = 0;
-
-              const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
-              _currAccelLon = tmp.accelerationX();
-              _currAccelTrans = tmp.accelerationY();
-
-              _currAccelLon = std::lroundf(_currAccelLon * 100.0f) / 100.0f;
-              _currAccelTrans = std::lroundf(_currAccelTrans * 100.0f) / 100.0f;
-
-              if(in_fence_primitive(boxBL, boxTR, _currAccelLon, _currAccelTrans) == true) {
-                // todo
-                _tempDrivingStatusList.push_back(storedKey.timeStamp());
-              }
+            if (!lmdb::dbi_get(rotxn, dbiAll, &keyAll, &valueAll)) {
+              continue;
             }
           }
-          
+
+          const char *ptr = static_cast<char*>(keyAll.mv_data);
+          cabinet::Key storedKey = getKey(ptr, keyAll.mv_size);
+
+          std::vector<char> val;
+          val.reserve(storedKey.length());
+          if (storedKey.length() > valueAll.mv_size) {
+            LZ4_decompress_safe(static_cast<char*>(valueAll.mv_data), val.data(), valueAll.mv_size, val.capacity());
+          }
+          else {
+            // Stored value is uncompressed.
+            memcpy(val.data(), static_cast<char*>(valueAll.mv_data), valueAll.mv_size);
+          }
+          // Extract an Envelope and its payload on the example for AccelerationReading
+          std::stringstream sstr{std::string(val.data(), storedKey.length())};
+          auto e = cluon::extractEnvelope(sstr);
+          if (e.first && e.second.dataType() == _ID) {
+
+            if(firstFlag) cntEntries++;
+
+            float _currAccelLon = 0;
+            float _currAccelTrans = 0;
+
+            const auto tmp = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(e.second));
+            _currAccelLon = tmp.accelerationX();
+            _currAccelTrans = tmp.accelerationY();
+
+            _currAccelLon = std::lroundf(_currAccelLon * 100.0f) / 100.0f;
+            _currAccelTrans = std::lroundf(_currAccelTrans * 100.0f) / 100.0f;
+
+            if(in_fence_primitive(boxBL, boxTR, _currAccelLon, _currAccelTrans) == true) {
+              // todo
+              _tempDrivingStatusList.push_back(storedKey.timeStamp());
+            }
+          }
         }
       } catch (const lmdb::error& error) {
         std::cerr << "Error while interfacing with the database: " << error.what() << std::endl;
