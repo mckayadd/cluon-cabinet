@@ -370,7 +370,7 @@ int32_t main(int32_t argc, char **argv) {
           std::cout << std::endl << "Brute Force Primitive" << std::endl;
 
           auto start = std::chrono::high_resolution_clock::now();
-          //std::vector<std::pair<int64_t, int64_t>> detection_BF_primitive = cabinet_queryManeuverBruteForcePrimitive(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver, db_start, db_end, entryCNT);
+          // std::vector<std::pair<int64_t, int64_t>> detection_BF_primitive = cabinet_queryManeuverBruteForcePrimitive(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver, db_start, db_end, entryCNT);
           auto end = std::chrono::high_resolution_clock::now();
           int64_t duration_BF_primitive = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
           std::cout << "Done!" << std::endl;
@@ -412,52 +412,52 @@ int32_t main(int32_t argc, char **argv) {
           }*/
 
       ////////////////////////////////////////////////////////////////////////////////
-          std::cout << "Database" << std::endl;
-          std::cout << "Start TS: " << db_start << " End TS: " << db_end << std::endl;
-          std::cout << "No. of entries in database: " << entryCNT << std::endl;
+      //     std::cout << "Database" << std::endl;
+      //     std::cout << "Start TS: " << db_start << " End TS: " << db_end << std::endl;
+      //     std::cout << "No. of entries in database: " << entryCNT << std::endl;
 
-          // ausgabe für HMI
-          std::cout << std::endl << "Effectivity" << std::endl;
-          // std::cout << "BF-Primitiv: We detected " << detection_BF_primitive.size() << " Maneuvers" << std::endl;
-          std::cout << "BF:          We detected " << detection_BF.size() << " Maneuvers" << std::endl;
-          std::cout << "SFC:         We detected " << detection_SFC.size() << " Maneuvers" << std::endl;
+      //     // ausgabe für HMI
+      //     std::cout << std::endl << "Effectivity" << std::endl;
+      //     std::cout << "BF-Primitiv: We detected " << detection_BF_primitive.size() << " Maneuvers" << std::endl;
+      //     std::cout << "BF:          We detected " << detection_BF.size() << " Maneuvers" << std::endl;
+      //     std::cout << "SFC:         We detected " << detection_SFC.size() << " Maneuvers" << std::endl;
 
-          // std::cout << "Effectivity" << std::endl;
+      //     // std::cout << "Effectivity" << std::endl;
 
-          // if(detection_BF.size() != 0) {
-          //   float detShare = (static_cast<float>(detection_BF.size())-static_cast<float>(false_negatives.size()))/static_cast<float>(detection_BF.size()) * 100.0f;
-          //   std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << detShare << "%)" <<" elements are detected by SFC-query" << std::endl;
-          // }
-          // else
-          //   std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() << " elements are detected by SFC-query" << std::endl;
+      //     // if(detection_BF.size() != 0) {
+      //     //   float detShare = (static_cast<float>(detection_BF.size())-static_cast<float>(false_negatives.size()))/static_cast<float>(detection_BF.size()) * 100.0f;
+      //     //   std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() <<  " (" << detShare << "%)" <<" elements are detected by SFC-query" << std::endl;
+      //     // }
+      //     // else
+      //     //   std::cout << "(" << false_negatives.size() << " false negatives) : " << detection_BF.size()-false_negatives.size() << "/" << detection_BF.size() << " elements are detected by SFC-query" << std::endl;
 
-          // std::cout << "(" << false_positives.size() << " false positives) : " << false_positives.size() << " elements are additionally detected by SFC-query." << std::endl;
+      //     // std::cout << "(" << false_positives.size() << " false positives) : " << false_positives.size() << " elements are additionally detected by SFC-query." << std::endl;
 
-          std::cout << std::endl << "Efficiency" << std::endl;
+      //     std::cout << std::endl << "Efficiency" << std::endl;
 
-          std::cout << "BF-Primitiv: " << duration_BF_primitive << " ms" << std::endl;
-          std::cout << "BF         : " << duration_BF << " ms" << std::endl;
-          std::cout << "SFC        : " << duration_SFC << " ms" << std::endl;
-      ////////////////////////////////////////////////////////////////////////////////
-          //resultDatei
-          // resultDatei << testCnt << ", " << db_start << ", " << db_end << ", " << entryCNT << ", " << duration_BF_primitive << ", " << duration_BF << ", " <<  duration_SFC << ", "
-          //   << detection_BF_primitive.size() << ", " << detection_BF.size() << ", " << detection_SFC.size() << ", "
-          //   <<  false_negatives_BF.size() << ", " <<  false_positives_BF.size() << ", "
-          //   << false_negatives_SFC.size() << ", " << false_positives_SFC.size() << ", " << maneuver.size();
+      //     std::cout << "BF-Primitiv: " << duration_BF_primitive << " ms" << std::endl;
+      //     std::cout << "BF         : " << duration_BF << " ms" << std::endl;
+      //     std::cout << "SFC        : " << duration_SFC << " ms" << std::endl;
+      // ////////////////////////////////////////////////////////////////////////////////
+      //     //resultDatei
+      //     resultDatei << testCnt << ", " << db_start << ", " << db_end << ", " << entryCNT << ", " << duration_BF_primitive << ", " << duration_BF << ", " <<  duration_SFC << ", "
+      //       << detection_BF_primitive.size() << ", " << detection_BF.size() << ", " << detection_SFC.size() << ", "
+      //       <<  false_negatives_BF.size() << ", " <<  false_positives_BF.size() << ", "
+      //       << false_negatives_SFC.size() << ", " << false_positives_SFC.size() << ", " << maneuver.size();
 
-          //std::string temp;
-          //temp = i;
-          // + ", " + duration_BF_primitive + ", " + duration_BF + ", " +  duration_SFC + ", "
-          //  + detection_BF_primitive.size() + ", " + detection_BF.size() + ", " + detection_SFC.size() + ", "
-          //  +  false_negatives_BF.size() + ", " +  false_positives_BF.size() + ", " + false_negatives_SFC.size() + ", " + false_positives_SFC.size()+<< ", ";      
+      //     //std::string temp;
+      //     //temp = i;
+      //     // + ", " + duration_BF_primitive + ", " + duration_BF + ", " +  duration_SFC + ", "
+      //     //  + detection_BF_primitive.size() + ", " + detection_BF.size() + ", " + detection_SFC.size() + ", "
+      //     //  +  false_negatives_BF.size() + ", " +  false_positives_BF.size() + ", " + false_negatives_SFC.size() + ", " + false_positives_SFC.size()+<< ", ";     
           
-          for(auto tempMan : maneuver) {
-            resultDatei << ", " << tempMan->fenceBL.first << ", " << tempMan->fenceBL.second << ", "
-              << tempMan->fenceTR.first << ", " << tempMan->fenceTR.second;
-          }
-          resultDatei << std::endl;
+      //     for(auto tempMan : maneuver) {
+      //       resultDatei << ", " << tempMan->fenceBL.first << ", " << tempMan->fenceBL.second << ", "
+      //         << tempMan->fenceTR.first << ", " << tempMan->fenceTR.second;
+      //     }
+      //     resultDatei << std::endl;
 
-          testCnt++;
+      //     testCnt++;
         }
       }
     //}
