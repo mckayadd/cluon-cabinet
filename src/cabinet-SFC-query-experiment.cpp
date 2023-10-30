@@ -370,7 +370,7 @@ int32_t main(int32_t argc, char **argv) {
           std::cout << std::endl << "Brute Force Primitive" << std::endl;
 
           auto start = std::chrono::high_resolution_clock::now();
-          std::vector<std::pair<int64_t, int64_t>> detection_BF_primitive = cabinet_queryManeuverBruteForcePrimitive(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver, db_start, db_end, entryCNT);
+          //std::vector<std::pair<int64_t, int64_t>> detection_BF_primitive = cabinet_queryManeuverBruteForcePrimitive(MEM, CABINET, APLX, VERBOSE, _fenceBL, _fenceTR, maneuver, db_start, db_end, entryCNT);
           auto end = std::chrono::high_resolution_clock::now();
           int64_t duration_BF_primitive = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
           std::cout << "Done!" << std::endl;
@@ -392,11 +392,11 @@ int32_t main(int32_t argc, char **argv) {
 
           std::cout << "Done!" << std::endl << std::endl;
 
-          std::vector<std::pair<int64_t, int64_t>>false_negatives_BF = getFalseNegatives(detection_BF_primitive, detection_BF);
-          std::vector<std::pair<int64_t, int64_t>>false_positives_BF = getFalsePositives(detection_BF_primitive, detection_BF);
+          // std::vector<std::pair<int64_t, int64_t>>false_negatives_BF = getFalseNegatives(detection_BF_primitive, detection_BF);
+          // std::vector<std::pair<int64_t, int64_t>>false_positives_BF = getFalsePositives(detection_BF_primitive, detection_BF);
 
-          std::vector<std::pair<int64_t, int64_t>>false_negatives_SFC = getFalseNegatives(detection_BF_primitive, detection_SFC);
-          std::vector<std::pair<int64_t, int64_t>>false_positives_SFC = getFalsePositives(detection_BF_primitive, detection_SFC);
+          // std::vector<std::pair<int64_t, int64_t>>false_negatives_SFC = getFalseNegatives(detection_BF_primitive, detection_SFC);
+          // std::vector<std::pair<int64_t, int64_t>>false_positives_SFC = getFalsePositives(detection_BF_primitive, detection_SFC);
 
       ////////////////////////////////////////////////////////////////////////////////
       // Output all
@@ -418,7 +418,7 @@ int32_t main(int32_t argc, char **argv) {
 
           // ausgabe für HMI
           std::cout << std::endl << "Effectivity" << std::endl;
-          std::cout << "BF-Primitiv: We detected " << detection_BF_primitive.size() << " Maneuvers" << std::endl;
+          // std::cout << "BF-Primitiv: We detected " << detection_BF_primitive.size() << " Maneuvers" << std::endl;
           std::cout << "BF:          We detected " << detection_BF.size() << " Maneuvers" << std::endl;
           std::cout << "SFC:         We detected " << detection_SFC.size() << " Maneuvers" << std::endl;
 
@@ -440,10 +440,10 @@ int32_t main(int32_t argc, char **argv) {
           std::cout << "SFC        : " << duration_SFC << " ms" << std::endl;
       ////////////////////////////////////////////////////////////////////////////////
           //resultDatei
-          resultDatei << testCnt << ", " << db_start << ", " << db_end << ", " << entryCNT << ", " << duration_BF_primitive << ", " << duration_BF << ", " <<  duration_SFC << ", "
-            << detection_BF_primitive.size() << ", " << detection_BF.size() << ", " << detection_SFC.size() << ", "
-            <<  false_negatives_BF.size() << ", " <<  false_positives_BF.size() << ", "
-            << false_negatives_SFC.size() << ", " << false_positives_SFC.size() << ", " << maneuver.size();
+          // resultDatei << testCnt << ", " << db_start << ", " << db_end << ", " << entryCNT << ", " << duration_BF_primitive << ", " << duration_BF << ", " <<  duration_SFC << ", "
+          //   << detection_BF_primitive.size() << ", " << detection_BF.size() << ", " << detection_SFC.size() << ", "
+          //   <<  false_negatives_BF.size() << ", " <<  false_positives_BF.size() << ", "
+          //   << false_negatives_SFC.size() << ", " << false_positives_SFC.size() << ", " << maneuver.size();
 
           //std::string temp;
           //temp = i;
